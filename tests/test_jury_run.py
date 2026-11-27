@@ -22,6 +22,12 @@ class JuryRunTests(unittest.TestCase):
             saved = json.loads(report.with_suffix(".json").read_text(encoding="utf-8"))
             self.assertEqual(saved, audit)
             self.assertEqual(report.read_text(encoding="utf-8"), render_review(saved))
+            self.assertIn("пропущена в режиме локальных правил", render_review(saved))
+            mixed = [{**item, "assessment_status": "reviewed" if idx else "unchecked"}
+                     for idx, item in enumerate(saved["requirements"])]
+            mixed_report = render_review({**saved, "mode": "gemini", "requirements": mixed})
+            self.assertIn(f"оценкой ИИ — {len(mixed) - 1} из {len(mixed)}", mixed_report)
+            self.assertIn("Требуют индивидуальной сверки — " + mixed[0]["id"], mixed_report)
             questions = report.with_suffix(".answers.md").read_text(encoding="utf-8")
             self.assertTrue(saved["findings"])
             for item in saved["findings"]:

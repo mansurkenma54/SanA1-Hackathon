@@ -87,7 +87,10 @@ TIMING_LIMIT = re.compile(
     r"количественн\w*\s+(?:требовани|критери)\w*\s+к\s+(?:скорост|времен|задержк)", re.I
 )
 CONFLICT_QUESTIONS = (
-    re.compile(r"(?=.*(?:месяц|месячн))(?=.*(?:покупк|операци))(?=.*(?:дат[аеыу]|провед|соверш[её]н))", re.I),
+    re.compile(r"(?=.*(?:месяц|месячн))(?=.*(?:покупк|операци|тран[зс]акци))"
+               r"(?=.*(?:како[йм](?:\s+календарн\w+)?\s+месяц|какому\s+месяцу|"
+               r"как(?:ая|ую|ой)\s+(?:именно\s+)?дат[ауе]|"
+               r"(?:по\s+)?дат[ауе]\s+.{0,40}или\s+.{0,25}провед))", re.I),
     re.compile(r"(?=.*(?:уведомлен|\bpush\b|\bпуш\w*\b))(?=.*(?:порог|лимит))(?=.*(?:повторн|второ|уже отправлен|один раз|истори|сбрасыва|сброс))", re.I),
     re.compile(r"какая сумма|какое значение лимита|какой(?: размер)? лимит|какой предел", re.I),
 )
@@ -447,6 +450,14 @@ def render_review(audit):
              f"- SHA-256 исходного файла — {audit['sha256']}", f"- Дата и время — {audit['generated_at']}",
              f"- Версия SanA1 (Git) — {audit['version']}", f"- Режим — {mode}"]
     lines.extend(f"- {stage['stage']} — {md(stage['model'])}" for stage in audit["passes"])
+    if rules_only:
+        lines.append("- Индивидуальная оценка ИИ — пропущена в режиме локальных правил.")
+    elif all("assessment_status" in item for item in requirements):
+        reviewed = sum(item["assessment_status"] == "reviewed" for item in requirements)
+        lines.append(f"- Требований с индивидуальной оценкой ИИ — {reviewed} из {len(requirements)}")
+        unchecked = [item["id"] for item in requirements if item["assessment_status"] == "unchecked"]
+        if unchecked:
+            lines.append("- Требуют индивидуальной сверки — " + ", ".join(unchecked))
     if audit["warnings"]:
         lines.extend(["", "## Ограничения и проверка доказательств", ""])
         lines.extend(f"- {md(warning)}" for warning in audit["warnings"])

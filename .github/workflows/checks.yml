@@ -5,7 +5,17 @@ permissions:
 
 jobs:
   audit:
-    runs-on: ubuntu-latest
+    name: Audit on ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    env:
+      PYTHONUTF8: "1"
     timeout-minutes: 8
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
@@ -28,9 +38,7 @@ jobs:
           python -m tools.check_qr_case tests/fixtures/qr-refund-corrected.docx
       - name: Check the official case and corrected variants
         run: |
-          curl --fail --silent --show-error --max-time 30 \
-            'https://raw.githubusercontent.com/BCC-HUB/ai-requirements-validator-task/928c1aa364265426105b69ba7a3444eac11b22db/docs/requirements.md' \
-            -o "$RUNNER_TEMP/hackathon-requirements.md"
+          python -c "import os; from pathlib import Path; from organizer_input import official_input_bytes; (Path(os.environ['RUNNER_TEMP']) / 'hackathon-requirements.md').write_bytes(official_input_bytes())"
           python -m tools.check_official_case "$RUNNER_TEMP/hackathon-requirements.md"
           python run.py "$RUNNER_TEMP/hackathon-requirements.md" "$RUNNER_TEMP/review.md" --rules-only --answers --json
           python -m tools.check_expanded_acceptance "$RUNNER_TEMP/hackathon-requirements.md" --report "$RUNNER_TEMP/review.json"

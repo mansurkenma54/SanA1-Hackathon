@@ -151,6 +151,12 @@ function normalizedSearch(text) {
   return text.normalize("NFKC").toLocaleLowerCase("ru").replace(/[‐‑‒–—−]/g, "-").replace(/ё/g, "е").trim();
 }
 
+export function assessmentCoverage(requirements) {
+  const reviewed = requirements.filter(item => item.assessment_status === "reviewed").length;
+  const unchecked = requirements.filter(item => item.assessment_status === "unchecked").length;
+  return { reviewed, unchecked, total: requirements.length, recorded: reviewed + unchecked === requirements.length };
+}
+
 export function formatAuditQuestions(findings) {
   if (!findings.length) return "";
   const groups = findings.map(({ id, priority, question, requirements, evidence }) => {
@@ -187,6 +193,11 @@ export function renderAudit(host, audit, {
   const requirementLabels = new Map(requirements.map(item => [item.id, item.source_id || item.id]));
   const translations = [];
   const kk = {
+    "Требует индивидуальной сверки": "Жеке тексеру қажет", "Только без индивидуальной оценки": "Жеке бағасы жоқтарын ғана көрсету",
+    "Проверка по правилам. Индивидуальная оценка ИИ не проводилась.": "Талаптар ережелермен тексерілді. ЖИ әр талапты жеке бағалаған жоқ.",
+    "В этом отчёте не указан охват индивидуальной оценки ИИ.": "Бұл есепте ЖИ қанша талапты жеке бағалағаны көрсетілмеген.",
+    "Требования по этому запросу не найдены.": "Сұрауға сәйкес талап табылмады.",
+    "В этом прогоне требования не выделены.": "Осы тексеруде жеке талаптар анықталмады.",
     "Итог": "Қорытынды", "Отдельные требования": "Жеке талаптар", "Набор в целом": "Талаптар жиыны",
     "Паспорт прогона": "Тексеру деректері", "Проверка набора требований": "Талаптар жиынын тексеру",
     "Показать в ТЗ": "ТЗ-дан көрсету", "Файл": "Файл", "Время": "Уақыты", "Режим": "Режім", "Коммит SanA1": "SanA1 коммиті",
@@ -219,7 +230,7 @@ export function renderAudit(host, audit, {
     "Доступ подтверждён": "Қолжетімділігі расталды", "Не удалось проверить доступ": "Қолжетімділігін тексеру мүмкін болмады",
     "Проверка адреса заблокирована": "Мекенжайды тексеруге тыйым салынған", "Получено перенаправление": "Басқа мекенжайға бағыттайды",
   };
-  const local = (ru, en) => language === "en" ? en : language === "kk" ? (kk[ru] || ru) : ru;
+  const local = (ru, en, kazakh) => language === "en" ? en : language === "kk" ? (kazakh || kk[ru] || ru) : ru;
   function labelText(element, ru, en) {
     const label = document.createTextNode(local(ru, en));
     element.prepend(label);
@@ -590,6 +601,23 @@ export function renderAudit(host, audit, {
   findingsPanel.append(list, empty);
 
   const searchLabel = labelText(node("label", "", "audit-search"), "Поиск по требованиям", "Search requirements");
+  const coverage = assessmentCoverage(requirements);
+  const coverageLine = node("p", "", "audit-verdict");
+  function updateCoverage() {
+    coverageLine.textContent = rulesOnly
+      ? local("Проверка по правилам. Индивидуальная оценка ИИ не проводилась.", "This run used local rules. Individual AI assessment was skipped.")
+      : coverage.recorded
+        ? local(`Индивидуальную оценку ИИ получили ${coverage.reviewed} из ${coverage.total}.`,
+          `Individually assessed by AI: ${coverage.reviewed} of ${coverage.total}.`, `ЖИ жеке бағалаған талаптар саны — ${coverage.reviewed} / ${coverage.total}.`)
+        : local("В этом отчёте не указан охват индивидуальной оценки ИИ.", "This report does not record individual AI assessment coverage.");
+  }
+  updateCoverage();
+  translations.push(updateCoverage);
+  const uncheckedOnly = node("input");
+  uncheckedOnly.type = "checkbox";
+  const uncheckedFilter = node("label", "", "audit-unchecked-filter");
+  uncheckedFilter.append(uncheckedOnly, labelText(node("span"), "Только без индивидуальной оценки", "Show only requirements awaiting assessment"));
+  uncheckedFilter.hidden = rulesOnly || !coverage.unchecked;
   const search = node("input");
   search.type = "search";
   labelAttribute(search, "placeholder", "Например, Ф-2, L38 или «порог»", "For example, Ф-2, L38 or a term");
@@ -603,23 +631,27 @@ export function renderAudit(host, audit, {
     const cells = tableRow(item.summary) ? tableCells(item.summary).filter(Boolean) : [];
     card.firstElementChild.append(node("span", location, "audit-requirement-meta"),
       node("span", cells.length ? cells.join(" · ") : item.summary));
+    const unchecked = item.assessment_status === "unchecked";
+    if (!rulesOnly && unchecked) card.firstElementChild.append(
+      labelText(node("small", "", "audit-mode-note"), "Требует индивидуальной сверки", "Needs individual assessment"));
     card.append(evidenceList([item.source], source => openEvidence(item, source), labelText, labelAttribute), fact("Оценка", item.assessment));
     if (item.findings.length) {
       card.append(links(item.findings, revealFinding));
     }
     const text = normalizedSearch([location, item.summary, item.source.section, item.source.quote].join(" "));
-    requirementCards.set(item.id, { card, text });
+    requirementCards.set(item.id, { card, text, unchecked });
     inventory.append(card);
   }
   function filterRequirements() {
     const terms = normalizedSearch(search.value).split(/\s+/u).filter(Boolean);
     let count = 0;
-    for (const { card, text } of requirementCards.values()) {
-      card.hidden = !terms.every(term => text.includes(term));
+    for (const { card, text, unchecked } of requirementCards.values()) {
+      card.hidden = (uncheckedOnly.checked && !unchecked) || !terms.every(term => text.includes(term));
       if (!card.hidden) count++;
     }
     searchStatus.textContent = !requirements.length ? local("В этом прогоне требования не выделены.", "No requirements were extracted.")
-      : count ? local(`Требований показано: ${count} из ${requirements.length}`, `Showing ${count} of ${requirements.length}`)
+      : count ? local(`Требований показано: ${count} из ${requirements.length}`, `Showing ${count} of ${requirements.length}`,
+        `Көрсетілген талаптар — ${count} / ${requirements.length}`)
         : local("Требования по этому запросу не найдены.", "No requirements match your search.");
   }
   function revealRequirement(id) {
@@ -628,13 +660,15 @@ export function renderAudit(host, audit, {
     showPanel("requirements");
     if (entry.card.hidden) {
       search.value = "";
+      uncheckedOnly.checked = false;
       filterRequirements();
     }
     reveal(entry.card);
   }
   search.addEventListener("input", filterRequirements);
+  uncheckedOnly.addEventListener("change", filterRequirements);
   filterRequirements();
-  panels.get("requirements").panel.append(searchLabel, searchStatus, inventory);
+  panels.get("requirements").panel.append(coverageLine, searchLabel, uncheckedFilter, searchStatus, inventory);
   const checks = details("", "audit-section");
   labelText(checks.firstElementChild, "Проверка набора требований", "Assessment of the whole set");
   checks.open = true;

@@ -1,0 +1,2 @@
+# Keep the agent's published report identical to the downloadable file on every OS.
+/public/reports/*.md text eol=lf

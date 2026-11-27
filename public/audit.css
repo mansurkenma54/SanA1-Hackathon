@@ -136,6 +136,8 @@
 }
 .audit-search input::placeholder { color: #aabfb0; }
 .audit-search-status { color: #b9cbbd; font-size: 12px; line-height: 1.35; }
+.audit-unchecked-filter { display: flex; align-items: center; gap: 8px; width: fit-content; min-height: 38px; cursor: pointer; }
+.audit-unchecked-filter input { width: 16px; height: 16px; accent-color: var(--green); }
 .audit-link-address { overflow-wrap: anywhere; font-size: 13px; }
 .audit-requirement-meta { color: #a9d8b6; font: 650 12px/1.5 var(--mono); }
 @media (max-width: 850px) {

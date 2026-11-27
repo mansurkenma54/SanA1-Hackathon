@@ -21,6 +21,7 @@ DEFAULT_MODEL = "gemini-3.5-flash-lite"
 DEFAULT_FALLBACK = "gemini-3.6-flash"
 BATCH_SIZE = 5_000
 TEMPORARY_ERRORS = {"gemini_busy", "gemini_timeout", "gemini_unavailable", "gemini_quota"}
+UNVERIFIED_ASSESSMENT = "Не проверено. Цитата модели не совпала с исходным блоком."
 REQUIREMENT_LABEL = re.compile(
     r"^\s*(?:[-+*]\s+|\d+[.)]\s+)?(?:[*_]{1,3})?"
     rf"({CLAUSE_ID})(?=[.:\s*_)]|$)", re.I,
@@ -438,7 +439,7 @@ def individual_results(result, blocks, *, enforce_numbered=True, context=None):
                 validated.append(issue)
             except ValueError:
                 excluded += 1
-        assessment = entry.assessment if quote_verified else "Не проверено. Цитата модели не совпала с исходным блоком."
+        assessment = entry.assessment if quote_verified else UNVERIFIED_ASSESSMENT
         if resolved:
             refs = ", ".join(dict.fromkeys(resolved))
             note = f"Часть уточнений уже разрешена в тексте ({refs})."
@@ -574,7 +575,6 @@ def review_requirements_steps(text, extension, model=None, *, table_rows=None, r
     preferred = models
     inventory = []
     omitted = 0
-    replaced_quotes = 0
     fingerprints = block_fingerprints(blocks) if previous or snapshot is not None else {}
     counts = Counter(fingerprints.values())
     reused = set()
@@ -610,34 +610,46 @@ def review_requirements_steps(text, extension, model=None, *, table_rows=None, r
                if detailed else "requirements")
         data = {"document_title": title, "blocks": [block.as_prompt_data(title) for block in batch],
                 "required_refs": [block.ref for block in required]}
-        rows, excluded, original_blocks_used = run_review_stage(
+        rows, excluded, _ = run_review_stage(
             IndividualReview, INDIVIDUAL_INSTRUCTION, data, 12_000,
             lambda output: individual_results(output, candidates, enforce_numbered=False, context=lookup),
             f"Проверка требований, часть {number}",
         )
-        inventory.extend(rows)
         omitted += excluded
-        replaced_quotes += original_blocks_used
-        missing = {block.ref: block for block in required}.keys() - {row.ref for row, _ in rows}
-        if not missing:
+        seen = {entry.ref for entry, _ in rows}
+        verified = {entry.ref for entry, _ in rows if entry.assessment != UNVERIFIED_ASSESSMENT}
+        missing = {block.ref for block in required} - seen
+        extra = {block.ref: block for block in required if block.ref not in verified}
+        if not extra:
+            inventory.extend(rows)
             continue
-        extra = {block.ref: block for block in required if block.ref in missing}
 
         def supplemental(output):
             result = individual_results(output, extra, enforce_numbered=False, context=lookup)
-            if set(extra) - {row.ref for row, _ in result[0]}:
+            if missing - {row.ref for row, _ in result[0]}:
                 raise ValueError("gemini_incomplete_inventory")
             return result
 
+        # A quote mismatch is retried using only the affected source blocks. If
+        # verification still fails, retain the explicitly unchecked original.
         data = {"document_title": title, "blocks": [block.as_prompt_data(title) for block in extra.values()],
                 "required_refs": list(extra)}
-        rows, excluded, original_blocks_used = run_review_stage(
-            IndividualReview, INDIVIDUAL_INSTRUCTION, data, 10_000, supplemental,
-            f"Проверка пропущенных пунктов, часть {number}",
-        )
-        inventory.extend(rows)
+        try:
+            retried, excluded, _ = run_review_stage(
+                IndividualReview, INDIVIDUAL_INSTRUCTION, data, 10_000, supplemental,
+                f"Повторная проверка пунктов и цитат, часть {number}",
+            )
+        except ValueError:
+            if missing:
+                raise
+            inventory.extend(rows)
+            continue
+        recovered = {entry.ref for entry, _ in retried if entry.assessment != UNVERIFIED_ASSESSMENT}
+        inventory.extend(pair for pair in rows if pair[0].ref not in recovered)
+        for entry, evidence in retried:
+            if entry.ref in missing or (entry.ref in recovered and entry.assessment != UNVERIFIED_ASSESSMENT):
+                inventory.append((entry, evidence))
         omitted += excluded
-        replaced_quotes += original_blocks_used
     if not inventory:
         raise ValueError("no_requirements")
     inventory.sort(key=lambda pair: pair[1].line)
@@ -662,4 +674,5 @@ def review_requirements_steps(text, extension, model=None, *, table_rows=None, r
             fingerprint = fingerprints[entry.ref]
             if counts[fingerprint] == 1 and not entry.assessment.startswith("Не проверено."):
                 snapshot.setdefault(fingerprint, []).append(entry.model_dump())
+    replaced_quotes = sum(entry.assessment == UNVERIFIED_ASSESSMENT for entry, _ in inventory)
     return title, lookup, inventory, set_review, rules, passes, omitted + excluded, replaced_quotes

@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { formatAuditQuestions } from "../public/audit-view.js";
+import { assessmentCoverage, formatAuditQuestions } from "../public/audit-view.js";
+
+test("individual AI coverage separates accepted, unchecked and unrecorded assessments", () => {
+  const accepted = Array.from({ length: 35 }, () => ({ assessment_status: "reviewed" }));
+  const partial = [...accepted, { assessment_status: "unchecked" }];
+  assert.deepEqual(assessmentCoverage(partial), { reviewed: 35, unchecked: 1, total: 36, recorded: true });
+  assert.deepEqual(assessmentCoverage([{}]), { reviewed: 0, unchecked: 0, total: 1, recorded: false });
+});
 
 test("formats a compact author question sheet with traceable findings and blank answers", () => {
   const result = formatAuditQuestions([{

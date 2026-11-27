@@ -111,3 +111,26 @@ class MandatoryCoverageTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "gemini_incomplete_inventory"):
                 audit_document(Path("card.md"), SOURCE.encode())
             self.assertEqual(generate.call_count, 2)
+
+    @patch.dict(os.environ, CONFIG)
+    def test_invalid_table_quote_is_rechecked_without_erasing_the_source(self):
+        source = ("# API\n\n## Общие параметры\n"
+                  "| Поле | Значение |\n| --- | --- |\n"
+                  "| **Request URL** | Dev: `/alerts/saveLimit` . Prod: — |\n")
+        row = source.splitlines()[-1]
+        invalid = assessment({"ref": "L6", "text": "/invented/path"})
+        good = assessment({"ref": "L6", "text": "`/alerts/saveLimit`"})
+        check = {"outcome": "ok", "comment": "Адрес операции приведён.", "refs": ["L6"]}
+        whole = dict.fromkeys(("consistency", "completeness", "traceability", "feasibility"), check) | {"issues": []}
+        for retry, expected in ((good, "reviewed"), (invalid, "unchecked")):
+            with self.subTest(expected=expected), patch("hackathon_review.generate", side_effect=[
+                model_answer({"requirements": [invalid]}), model_answer({"requirements": [retry]}), model_answer(whole)
+            ]) as request:
+                audit = audit_document(Path("settings.md"), source.encode())
+                payload = json.loads(request.call_args_list[1].args[1]["contents"][0]["parts"][0]["text"])
+                self.assertEqual([(b["ref"], b["text"]) for b in payload["blocks"]], [("L6", row)])
+                self.assertEqual(len(audit["requirements"]), 1)
+                requirement = audit["requirements"][0]
+                self.assertEqual(requirement["assessment_status"], expected)
+                self.assertEqual(requirement["source"]["quote"], good["quote"] if expected == "reviewed" else row)
+                self.assertEqual(any("неточных цитат" in warning for warning in audit["warnings"]), expected == "unchecked")
