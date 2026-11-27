@@ -4,7 +4,7 @@ SanA1 reviews English and Russian specifications. Paste text or upload a TXT, Ma
 
 ## Быстрый старт для жюри
 
-[Готовый отчёт агента](https://sana1-nine.vercel.app/reports/official.md) доступен по GET. Его паспорт указывает исходный файл, SHA-256, модель и версию прогона `4df3df2`. [Markdown в репозитории](public/reports/official.md)
+[Готовый отчёт агента](https://sana1-nine.vercel.app/reports/official.md) содержит 36 требований, 30 замечаний и 3 блокирующих дефекта. Проверка по контрольному списку подтвердила 15 из 15 тем и 115 дословных цитат. Паспорт указывает модель `gemini-3.5-flash-lite` и версию развёртывания `9ea69d7`. [Markdown в репозитории](public/reports/official.md) · [Снимок кода этого прогона](https://github.com/mansurkenma54/SanA1-Hackathon/commit/4411198450650bc3c7ed6e58b00e2552b83dc684)
 
 [Рабочая область](https://sana1-nine.vercel.app/workspace) принимает свой файл или учебный DOCX по ссылке **Загрузить пример**. Нажмите **Проверить**. Отчёт формируется на русском независимо от языка интерфейса.
 
