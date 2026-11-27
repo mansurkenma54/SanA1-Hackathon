@@ -116,7 +116,8 @@ def official_input():
 def static_asset(name):
     if name not in ASSETS:
         return {"error": "not_found"}, 404
-    return send_from_directory(PUBLIC, name)
+    # Windows registry MIME mappings can disagree with Python's JS module type.
+    return send_from_directory(PUBLIC, name, mimetype="text/javascript" if name.endswith(".js") else None)
 
 
 @app.get("/api/config")

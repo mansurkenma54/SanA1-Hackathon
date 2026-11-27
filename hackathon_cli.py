@@ -65,7 +65,17 @@ METHOD_DECISION = re.compile(r"(?:как(?:ой|им|ого)|чем\s+замен
 WRITE_OPERATION = re.compile(r"сохранен|сохраня|сохранить|изменен|изменя|модифиц|\bwrite|созда\w*\s+заявк", re.I)
 HTTP_VALIDATION = re.compile(r"(?:\b200\b.*\bERROR\b|\bERROR\b.*\b200\b)", re.I)
 HTTP_VALIDATION_CONFLICT = re.compile(r"(?=.*\b200\b)(?=.*\b400\b)(?=.*(?:неверн|некоррект|валид|ошибк))", re.I)
-HTTP_STATUS_QUESTION = re.compile(r"http[- ]статус|код ответа|(?:\b200\b.*\b400\b|\b400\b.*\b200\b)", re.I)
+HTTP_STATUS_QUESTION = re.compile(
+    r"http[- ](?:статус|код)|(?:статус|код)\s+http\b|статус(?:ный код)? ответа|код ответа|"
+    r"(?:\b200\b.*\b400\b|\b400\b.*\b200\b)", re.I,
+)
+SEPARATE_HTTP_DECISION = re.compile(
+    r"\b(?:401|403|404|408|429|5\d\d)\b|авторизац|аутентификац|просроченн\w*\s+сесси|"
+    r"чуж\w*\s+карт|тайм[- ]?аут|транспортн\w*\s+ошибк|(?:сбо\w*|обрыв\w*)\s+(?:сет|связ)|"
+    r"локализ|текст\w*\s+сообщени|тип\w*\s+пол[ея]|округл|единиц\w*\s+измерен|"
+    r"^\s*как\w*\s+(?:формат|поля|набор полей|структур\w*|схем\w*)\s+(?:тела|ответа|json)|"
+    r"^\s*как\w*\s+(?:допустим\w*|максимальн\w*|минимальн\w*)\s+(?:сумм|диапазон)", re.I,
+)
 PRODUCTION_ENV = re.compile(
     r"\bprod(?:uction)?\b|(?:промышленн|продуктивн|продуктов|боев)\w*\s+(?:сред|контур|окружен)", re.I,
 )
@@ -86,11 +96,11 @@ TIMING_LIMIT = re.compile(
     r"(?:максимальн|предельн|допустим)\w*\s+(?:срок|время|задержк)|"
     r"количественн\w*\s+(?:требовани|критери)\w*\s+к\s+(?:скорост|времен|задержк)", re.I
 )
+MONTH_BASIS = re.compile(
+    r"како[йм](?:\s+календарн\w+)?\s+месяц|какому\s+месяцу|"
+    r"как(?:ая|ую|ой)\s+(?:именно\s+)?дат[ауе]|дат[ауе]\s+.{0,40}или\s+.{0,25}провед", re.I,
+)
 CONFLICT_QUESTIONS = (
-    re.compile(r"(?=.*(?:месяц|месячн))(?=.*(?:покупк|операци|тран[зс]акци))"
-               r"(?=.*(?:како[йм](?:\s+календарн\w+)?\s+месяц|какому\s+месяцу|"
-               r"как(?:ая|ую|ой)\s+(?:именно\s+)?дат[ауе]|"
-               r"(?:по\s+)?дат[ауе]\s+.{0,40}или\s+.{0,25}провед))", re.I),
     re.compile(r"(?=.*(?:уведомлен|\bpush\b|\bпуш\w*\b))(?=.*(?:порог|лимит))(?=.*(?:повторн|второ|уже отправлен|один раз|истори|сбрасыва|сброс))", re.I),
     re.compile(r"какая сумма|какое значение лимита|какой(?: размер)? лимит|какой предел", re.I),
 )
@@ -126,6 +136,16 @@ def location(start, end, extension):
     return f"{label} (извлечённый текст)" if extension in {"pdf", "docx"} else label
 
 
+def asks_purchase_month(issue):
+    question = issue.question.casefold()
+    if not MONTH_BASIS.search(question) or not re.search(r"месяц|месячн", question):
+        return False
+    if re.search(r"часов\w* пояс|таймзон|формат дат", question):
+        return False
+    context = question + " " + issue.explanation.casefold()
+    return "провед" in context and bool(re.search(r"соверш[её]н|покупк", context))
+
+
 def overlaps_rule(issue, rule, refs=None, *, blocks=None):
     """Match the same decision in the source, including known phrasing variants."""
     refs = set(issue.refs if refs is None else refs)
@@ -159,6 +179,8 @@ def overlaps_rule(issue, rule, refs=None, *, blocks=None):
             and not REFUND_SEPARATE_DECISION.search(issue.question)):
         return True
     if len(overlap) >= 2 and rule.criterion == issue.criterion == "consistency":
+        if asks_purchase_month(rule) and asks_purchase_month(issue):
+            return True
         if any(topic.search(issue.question) and topic.search(rule.question) for topic in CONFLICT_QUESTIONS):
             return True
     if refs == set(rule.refs) and issue.criterion == "consistency":
@@ -243,6 +265,8 @@ def overlaps_rule(issue, rule, refs=None, *, blocks=None):
                 and re.search(r"событи|вебхук", issue.question, re.I)):
             return True
     if not HTTP_VALIDATION.search(rule.explanation):
+        return False
+    if SEPARATE_HTTP_DECISION.search(issue.question):
         return False
     same_error = HTTP_VALIDATION.search(issue.explanation)
     same_status_decision = HTTP_STATUS_QUESTION.search(issue.question)

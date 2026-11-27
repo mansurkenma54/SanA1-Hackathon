@@ -149,3 +149,28 @@ class SharedAuditRulesTests(unittest.TestCase):
                                 explanation=explanation, question=question, next_step="Согласовать поведение.")
                 model = rule.model_copy(update={"explanation": generated_explanation, "question": generated_question})
                 self.assertTrue(overlaps_rule(model, rule))
+
+    def test_period_and_validation_decisions_use_the_question_and_its_grounds(self):
+        cases = (
+            ("Общее правило относит расход к дате покупки, а пример — к дате проведения.",
+             "В какой месяц входит покупка, совершённая в одном месяце и проведённая в следующем?",
+             "По какой дате (совершения или проведения) должен определяться месяц учёта расходов?",
+             ["В каком часовом поясе определяется дата проведения на границе месяца?",
+              "Какой формат даты нужно отображать клиенту для месяца покупки?"]),
+            ("Отклонённый ввод описан как ошибка 400, но в примерах под HTTP 200 указан ERROR.",
+             "Какой HTTP-статус и какое тело получает клиент при недопустимом значении суммы?",
+             "Какой статус HTTP и формат ответа должен возвращаться при неверном значении суммы?",
+             ["Какой статус HTTP возвращается при отсутствии авторизации?",
+              "Какой статус HTTP получает клиент при обрыве связи?",
+              "Какой формат тела предусмотрен для HTTP 200 и 400?",
+              "Какая максимальная сумма допустима для запроса?", "Как округляется сумма?"]),
+        )
+        for explanation, canonical, paraphrase, separate in cases:
+            rule = SetIssue(criterion="consistency", severity="blocker", refs=["L8", "L16"],
+                            explanation=explanation, question=canonical, next_step="Согласовать поведение.")
+            issue = rule.model_copy(update={"question": paraphrase})
+            self.assertTrue(overlaps_rule(issue, rule))
+            self.assertFalse(overlaps_rule(issue.model_copy(update={"refs": ["L75"]}), rule))
+            for question in separate:
+                with self.subTest(question=question):
+                    self.assertFalse(overlaps_rule(issue.model_copy(update={"question": question}), rule))
