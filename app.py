@@ -3,6 +3,7 @@
 import argparse
 import json
 import os
+from http.client import HTTPException
 from pathlib import Path
 import sys
 from urllib.parse import unquote
@@ -14,6 +15,7 @@ from analyzer import LOCAL_CODES, MAX_TEXT, analysis_events, analyze, verify_fin
 from document_input import FILE_TYPES, MAX_PAGES, MAX_UPLOAD, extract_document, pdf_page_preview
 from examples import AUDIT_DEMO, CASES, WORKSPACE_EXAMPLES, evaluate, evaluation_events, score_case
 from gemini import ClarificationNeeded, enhance, is_configured, propose_correction
+from organizer_input import OFFICIAL_SHA256, SOURCE_URL, official_input_bytes
 from public_links import check_public_repository, github_repository
 from review_guidance import GUIDANCE
 from review_snapshot import MAX_TOKEN, read_snapshot, sign_snapshot
@@ -100,6 +102,16 @@ def official_report():
     return send_from_directory(PUBLIC, "reports/official.md", mimetype="text/plain")
 
 
+@app.get("/api/official-input")
+def official_input():
+    try:
+        source = official_input_bytes()
+    except (OSError, HTTPException, ValueError):
+        return {"error": "official_input_unavailable", "source": SOURCE_URL}, 503
+    return Response(source, content_type="text/markdown; charset=utf-8",
+                    headers={"Content-Disposition": 'inline; filename="requirements.md"'})
+
+
 @app.get("/<path:name>")
 def static_asset(name):
     if name not in ASSETS:
@@ -133,6 +145,8 @@ def audit_contract():
         "contract_version": 1,
         "method": "POST",
         "example_report": {"method": "GET", "path": OFFICIAL_REPORT_PATH, "language": "ru"},
+        "organizer_input": {"method": "GET", "path": "/api/official-input", "url": SOURCE_URL,
+                            "sha256": OFFICIAL_SHA256},
         "endpoints": {
             "gemini": {"path": f"{GEMINI_REVIEW_ROUTE}?operation={REPORT_OPERATION}", "requires_server_key": True},
             "rules": {"path": f"{LOCAL_REVIEW_ROUTE}?operation={REPORT_OPERATION}", "requires_server_key": False},

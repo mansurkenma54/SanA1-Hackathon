@@ -81,25 +81,19 @@
               <p data-i18n="reviewIntro">Audit the whole specification, clarify conflicting requirements and download the reviewed document.</p>
               <div class="hero-actions">
                 <a href="/workspace" data-route class="button primary hero-button" id="jump-editor"><svg class="control-icon" aria-hidden="true"><use href="#icon-scan"></use></svg><span data-i18n="start">Start</span></a>
-                <a href="/workspace?demo=audit" data-route class="button secondary hero-button" id="jump-demo"><svg class="control-icon" aria-hidden="true"><use href="#icon-example"></use></svg><span data-i18n="tryAuditDemo">Try the demo</span></a>
+                <a href="/workspace?case=official" data-route class="button secondary hero-button" id="jump-official"><svg class="control-icon" aria-hidden="true"><use href="#icon-document"></use></svg><span data-i18n="openOfficial">Открыть ТЗ хакатона</span></a>
               </div>
+              <a href="/reports/official.md" download="SanA1-BCC-HUB-report.md" class="official-download"><svg class="control-icon" aria-hidden="true"><use href="#icon-download"></use></svg><span data-i18n="savedOfficialReport">Скачать готовый отчёт по ТЗ хакатона (.md)</span></a>
             </div>
           </header>
-          <section class="home-guide" aria-labelledby="home-guide-title">
-            <h2 id="home-guide-title" data-i18n="guideTitle">Как это работает</h2>
-            <ol>
-              <li><strong data-i18n="guideUpload">Upload</strong></li>
-              <li><strong data-i18n="guideReview">Check</strong></li>
-              <li><strong data-i18n="guideExport">Revise and download</strong></li>
-            </ol>
-          </section>
         </section>
         <section id="review-page" class="view" data-pane="document" data-layout="split" data-has-results="false" aria-labelledby="review-heading" hidden>
           <header class="workspace-intro">
             <h1 id="review-heading" tabindex="-1" data-i18n="workspaceTitle">Specification review</h1>
             <div id="profile-host"></div>
             <div id="demo-tools" class="demo-tools" hidden>
-              <span class="demo-label" data-i18n="demoLabel">Sample document</span>
+              <span id="case-label" class="demo-label" data-i18n="demoLabel">Sample document</span>
+              <a id="official-source" class="button button-compact text-button" href="https://github.com/BCC-HUB/ai-requirements-validator-task/blob/928c1aa364265426105b69ba7a3444eac11b22db/docs/requirements.md" target="_blank" rel="noopener noreferrer" data-i18n="officialSource" hidden>Оригинал на GitHub</a>
               <a href="/workspace" data-route class="button button-compact secondary"><svg class="control-icon" aria-hidden="true"><use href="#icon-document"></use></svg><span data-i18n="myDocument">My document</span></a>
             </div>
           </header>
@@ -145,6 +139,7 @@
                   <p class="file-name" id="file-name" hidden><svg class="control-icon" aria-hidden="true"><use href="#icon-document"></use></svg><span id="file-name-text"></span></p>
                   <button type="button" class="button button-compact text-button" id="clear" hidden><svg class="control-icon" aria-hidden="true"><use href="#icon-clear"></use></svg><span data-i18n="clear">Clear</span></button>
                   <button id="demo-load" type="button" class="button button-compact text-button" data-i18n="demoLoad">Load sample</button>
+                  <a id="workspace-official" href="/workspace?case=official" data-route class="button button-compact text-button" data-i18n="openOfficial">Открыть ТЗ хакатона</a>
                 </div>
                 <div class="editor-actions" id="editor-actions" hidden>
                   <button id="hackathon-report" class="button primary" type="button" aria-describedby="review-method" aria-controls="findings-pane" disabled><svg class="control-icon" aria-hidden="true"><use href="#icon-findings"></use></svg><span id="hackathon-report-label" data-i18n="hackathonReport">Проверить</span></button>

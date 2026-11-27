@@ -6,9 +6,9 @@ import json
 from pathlib import Path
 
 from hackathon_cli import audit_document
+from organizer_input import OFFICIAL_SHA256
 
 
-OFFICIAL_SHA256 = "e7dae55e5453a250d93e335f5ff9c7f775f4457ccddd333f4a67e47b20d74381"
 CONTROLS = (
     ("Месяц покупки", {38, 64}, 64, "Февральский", "Январский"),
     ("Повторное уведомление", {39, 40}, 40,

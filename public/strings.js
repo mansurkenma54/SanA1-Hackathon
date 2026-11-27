@@ -482,10 +482,7 @@ export const strings = {
 };
 
 Object.assign(strings.ru, {
-  lightTheme: "Светлая", darkTheme: "Тёмная", guideTitle: "Как это работает",
-  guideUpload: "Загрузите ТЗ", guideUploadBody: "Выберите файл или возьмите пример. Нажмите «Запустить полный ИИ-аудит».",
-  guideReview: "Разберите замечания", guideReviewBody: "Начните с блокирующих. Откройте цитату и уточните, что должно происходить.",
-  guideExport: "Сверьте правки", guideExportBody: "Сравните «Было» и «Станет», примените изменения и скачайте Word и отчёт.",
+  lightTheme: "Светлая", darkTheme: "Тёмная",
   stepNeedsDocument: "Сначала загрузите файл или вставьте текст.", stepNeedsAudit: "Сначала запустите аудит. Его результат откроет этот этап.",
   stepNeedsChanges: "Откройте замечание и подготовьте правку для повторной проверки.",
   auditElapsed: seconds => seconds + " с",
@@ -494,10 +491,7 @@ Object.assign(strings.ru, {
     figures: "Сверяем схемы с таблицами", references: "Проверяем ссылки", report: "Собираем отчёт" },
 });
 Object.assign(strings.en, {
-  lightTheme: "Light", darkTheme: "Dark", guideTitle: "How it works",
-  guideUpload: "Upload a specification", guideUploadBody: "Choose your file or load the sample. Start the full AI audit.",
-  guideReview: "Review findings", guideReviewBody: "Start with blockers. Read the source quotation and confirm the expected behavior.",
-  guideExport: "Review and export", guideExportBody: "Compare before and after, apply the changes, and download Word and the report.",
+  lightTheme: "Light", darkTheme: "Dark",
   stepNeedsDocument: "Upload a file or paste your specification first.", stepNeedsAudit: "Run the audit first. Its results unlock this step.",
   stepNeedsChanges: "Open a finding and prepare an edit before rechecking.",
   auditElapsed: seconds => seconds + " s",
@@ -507,10 +501,7 @@ Object.assign(strings.en, {
 });
 strings.kk = {
   ...strings.ru,
-  lightTheme: "Ақ тақырып", darkTheme: "Қара тақырып", guideTitle: "Қалай жұмыс істейді",
-  guideUpload: "ТЗ жүктеңіз", guideUploadBody: "Өз файлыңызды не үлгіні таңдап, толық аудитті іске қосыңыз.",
-  guideReview: "Ақауларды қарап шығыңыз", guideReviewBody: "Бөгейтін ақаудан бастаңыз. Дәйексөзді ашып, күтілетін әрекетті нақтылаңыз.",
-  guideExport: "Өзгерістерді салыстырыңыз", guideExportBody: "Бұрынғы және жаңа мәтінді көріп, түзетулерді енгізіңіз. Word пен есепті жүктеңіз.",
+  lightTheme: "Ақ тақырып", darkTheme: "Қара тақырып",
   skip: "Жұмыс кеңістігіне өту", homeNav: "Басты бет", reviewNav: "ТЗ тексеру", workspace: "Жұмыс кеңістігі", language: "Тіл",
   reviewTitle: "Техникалық тапсырманы тексеру", workspaceTitle: "ТЗ тексеру", headlineStart: "Техникалық тапсырманы", headlineEnd: "тексеру",
   reviewIntro: "Талаптарды тексеріңіз, қайшылықтарды нақтылаңыз және өңделген құжатты жүктеңіз.",
@@ -551,30 +542,39 @@ strings.kk = {
 };
 
 Object.assign(strings.ru, {
-  start: "Начать", hackathonReport: "Проверить", auditRunAgain: "Проверить снова", demoLoad: "Загрузить пример",
+  start: "Проверить своё ТЗ", hackathonReport: "Проверить", auditRunAgain: "Проверить снова", demoLoad: "Учебный пример",
+  openOfficial: "Открыть ТЗ хакатона", officialCase: "ТЗ хакатона", officialSource: "Оригинал на GitHub",
+  loadingOfficial: "Загружаем ТЗ организаторов…", retryOfficial: "Загрузить ТЗ ещё раз",
+  officialUnavailable: "Не удалось загрузить ТЗ. Повторите загрузку или откройте оригинал на GitHub и загрузите файл вручную.",
+  savedOfficialReport: "Скачать готовый отчёт по ТЗ хакатона (.md)", returnSetCheck: "Вернуться к оценке набора",
   officialReport: "Отчёт по ТЗ", repositoryLink: "Репозиторий",
-  guideUpload: "Загрузите ТЗ", guideReview: "Проверьте", guideExport: "Исправьте и скачайте",
-  reviewIntro: "Текст, таблицы, изображения, ссылки и суммы в TXT, Markdown, DOCX и PDF.",
+  reviewIntro: "Находите противоречия в требованиях до разработки. Каждое замечание ведёт к исходному фрагменту.",
   phaseUpload: "Загрузка", phaseRead: "Разбор", phaseSegment: "Выделение требований",
   phaseRequirements: "Проверка требований", phaseConsistency: "Набор и вложения", phaseReport: "Отчёт",
   auditLog: "Журнал проверки", undoAuditRevision: "Отменить последнюю правку",
   auditFallback: "ИИ-проверка недоступна, выполнены только правила.",
 });
 Object.assign(strings.en, {
-  start: "Start", hackathonReport: "Check", auditRunAgain: "Recheck", demoLoad: "Load sample",
+  start: "Review my specification", hackathonReport: "Check", auditRunAgain: "Recheck", demoLoad: "Training example",
+  openOfficial: "Open the hackathon specification", officialCase: "Hackathon specification", officialSource: "Original on GitHub",
+  loadingOfficial: "Loading the organisers’ specification…", retryOfficial: "Retry loading the specification",
+  officialUnavailable: "The specification could not be loaded. Try again or open the original on GitHub and upload the file.",
+  savedOfficialReport: "Download the completed hackathon report (.md, Russian)", returnSetCheck: "Return to the set assessment",
   officialReport: "Case audit report", repositoryLink: "Repository",
-  guideUpload: "Upload", guideReview: "Check", guideExport: "Revise and download",
-  reviewIntro: "Check text, tables, images, links and amounts in TXT, Markdown, DOCX and PDF.",
+  reviewIntro: "Find conflicting requirements before development. Each finding links to the source passage.",
   phaseUpload: "Upload", phaseRead: "Parse", phaseSegment: "Extract requirements",
   phaseRequirements: "Review requirements", phaseConsistency: "Set and attachments", phaseReport: "Report",
   auditLog: "Audit log", undoAuditRevision: "Undo last revision",
   auditFallback: "AI review is unavailable. The result contains local rules only.",
 });
 Object.assign(strings.kk, {
-  start: "Бастау", hackathonReport: "Тексеру", auditRunAgain: "Қайта тексеру", demoLoad: "Үлгіні жүктеу",
+  start: "Өз ТЗ-мды тексеру", hackathonReport: "Тексеру", auditRunAgain: "Қайта тексеру", demoLoad: "Оқу үлгісі",
+  openOfficial: "Жарыстың ТЗ-сын ашу", officialCase: "Жарыстың ТЗ-сы", officialSource: "GitHub-тағы түпнұсқа",
+  loadingOfficial: "Ұйымдастырушылардың ТЗ-сы жүктеліп жатыр…", retryOfficial: "ТЗ-ны қайта жүктеу",
+  officialUnavailable: "ТЗ жүктелмеді. Қайталап көріңіз немесе GitHub-тағы түпнұсқаны ашып, файлды қолмен жүктеңіз.",
+  savedOfficialReport: "Жарыс ТЗ-сының дайын есебін жүктеу (.md, орысша)", returnSetCheck: "Талаптар жиынының бағасына оралу",
   officialReport: "ТЗ бойынша есеп", repositoryLink: "Репозиторий",
-  guideUpload: "Құжатты жүктеңіз", guideReview: "Тексеріңіз", guideExport: "Түзетіп, жүктеп алыңыз",
-  reviewIntro: "TXT, Markdown, DOCX және PDF ішіндегі мәтін, кесте, сурет, сілтеме мен сомаларды тексеріңіз.",
+  reviewIntro: "Талаптардағы қайшылықтарды әзірлеуге дейін табыңыз. Әр ескерту құжаттағы нақты үзіндіге сілтейді.",
   phaseUpload: "Жүктеу", phaseRead: "Құжатты оқу", phaseSegment: "Талаптарды бөлу",
   phaseRequirements: "Талаптарды тексеру", phaseConsistency: "Жинақ пен тіркемелер", phaseReport: "Есеп",
   auditLog: "Тексеру журналы", undoAuditRevision: "Соңғы түзетуді қайтару",

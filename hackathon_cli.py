@@ -1,6 +1,7 @@
 """Create the Russian requirements review file used by the hackathon CLI."""
 
 from collections import Counter, defaultdict
+from contextlib import ExitStack
 from datetime import datetime
 import hashlib
 import html
@@ -8,6 +9,7 @@ import json
 import os
 from pathlib import Path
 import re
+import shutil
 import subprocess
 import tempfile
 
@@ -47,6 +49,7 @@ ERRORS = {
     "invalid_model": "укажите корректный идентификатор модели выбранного провайдера",
     "same_file": "выберите для отчёта путь, отличный от входного файла",
     "same_answers_file": "выберите для ответов путь, отличный от входного файла и отчёта",
+    "same_json_file": "выберите для JSON путь, отличный от входного файла и остальных результатов",
     "invalid_output": "выберите файл отчёта с расширением .md или .json",
 }
 WARNINGS = {
@@ -604,40 +607,62 @@ def audit_document_steps(input_path, source, model=None, *, rules_only=False, pd
     return audit
 
 
-def review_file(input_path, output_path, model=None, *, rules_only=False, unified=False, answers_path=None):
+def review_file(input_path, output_path, model=None, *, rules_only=False, unified=False, answers_path=None,
+                json_path=None):
     extension = output_path.suffix.lower()
     if extension not in {".md", ".json"}:
         raise ValueError("invalid_output")
-    if input_path.resolve() == output_path.resolve() or (
-            input_path.exists() and output_path.exists() and input_path.samefile(output_path)):
-        raise ValueError("same_file")
-    if answers_path is not None:
-        for occupied_path in (input_path, output_path):
-            if answers_path.resolve() == occupied_path.resolve() or (
-                    answers_path.exists() and occupied_path.exists() and answers_path.samefile(occupied_path)):
-                raise ValueError("same_answers_file")
+    occupied = [input_path]
+    for path, error in ((output_path, "same_file"), (answers_path, "same_answers_file"), (json_path, "same_json_file")):
+        if path is None:
+            continue
+        if any(path.resolve() == used.resolve() or
+               (path.exists() and used.exists() and path.samefile(used)) for used in occupied):
+            raise ValueError(error)
+        if path.exists() and not path.is_file():
+            raise OSError(f"Путь для результата должен указывать на файл — {path}")
+        occupied.append(path)
     with input_path.open("rb") as stream:
         source = stream.read(MAX_UPLOAD + 1)
     audit = completed_steps(audit_document_steps(input_path, source, model, rules_only=rules_only,
                                                  check_links=unified, allow_rules_fallback=unified))
-    report = render_review(audit) if extension == ".md" else json.dumps(audit, ensure_ascii=False, indent=2) + "\n"
-    write_review_file(output_path, report)
+    encoded = json.dumps(audit, ensure_ascii=False, indent=2) + "\n" if extension == ".json" or json_path else None
+    files = {}
+    if json_path is not None:
+        files[json_path] = encoded
     if answers_path is not None:
         questions = ["# Вопросы автору ТЗ", "", f"Документ — {md(audit['document'])}", "",
                      *author_question_lines(audit["findings"], include_answers=True)]
-        write_review_file(answers_path, "\n".join(questions) + "\n")
+        files[answers_path] = "\n".join(questions) + "\n"
+    files[output_path] = render_review(audit) if extension == ".md" else encoded
+    write_review_files(files)
     return audit
 
 
-def write_review_file(output_path, report):
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", newline="\n",
-                                     dir=output_path.parent, delete=False) as temp:
-        temp_path = Path(temp.name)
+def write_review_files(files):
+    with ExitStack() as cleanup:
+        staged = {}
+        for target, content in files.items():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            directory = Path(cleanup.enter_context(tempfile.TemporaryDirectory(dir=target.parent)))
+            pending = directory / "new"
+            pending.write_text(content, encoding="utf-8", newline="\n")
+            backup = None
+            if len(files) > 1 and target.exists():
+                backup = directory / "previous"
+                shutil.copy2(target, backup)
+            staged[target] = pending, backup
+
+        published = []
         try:
-            temp.write(report)
-            temp.close()
-            os.replace(temp_path, output_path)
-        finally:
-            temp.close()
-            temp_path.unlink(missing_ok=True)
+            for target, (pending, _) in staged.items():
+                os.replace(pending, target)
+                published.append(target)
+        except OSError:
+            for target in reversed(published):
+                backup = staged[target][1]
+                if backup is None:
+                    target.unlink(missing_ok=True)
+                else:
+                    os.replace(backup, target)
+            raise

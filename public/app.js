@@ -63,6 +63,7 @@ const state = {
 };
 const documentStateKeys = Object.keys(newDocumentState());
 let draftWorkspace = null;
+let activeCase = null;
 let recoveryEnabled = false;
 let recoveryStatus = "";
 let recoveryTimer;
@@ -291,6 +292,8 @@ function renderEditor() {
   select("hackathon-report").classList.toggle("secondary", Boolean(state.audit));
   select("demo-load").hidden = hasDocument;
   select("demo-load").disabled = Boolean(state.loading);
+  select("demo-load").textContent = activeCase === "official" ? copy().retryOfficial : copy().demoLoad;
+  select("workspace-official").hidden = hasDocument || Boolean(activeCase) || Boolean(state.loading);
   select("clear").hidden = !spec.value && !state.file && !state.loading && !state.notice;
   select("file-name").hidden = !state.file;
   select("file-name-text").textContent = state.file;
@@ -306,8 +309,8 @@ function renderEditor() {
   notice.hidden = !code && !state.loading && length <= state.config.max_chars;
   notice.classList.toggle("is-loading", Boolean(state.loading));
   select("editor-notice-message").textContent = state.loading
-    ? copy()[state.loading === "file" ? "reading" : "loadingExample"]
-    : (copy().errors[code] || (length > state.config.max_chars ? copy().errors.text_too_long : "")) +
+    ? copy()[state.loading === "official" ? "loadingOfficial" : state.loading === "file" ? "reading" : "loadingExample"]
+    : (code === "official_input_unavailable" ? copy().officialUnavailable : copy().errors[code] || (length > state.config.max_chars ? copy().errors.text_too_long : "")) +
       (code === "partial_pdf" && unread.length ? " " + copy().unreadPages + " — " + unread.map(number).join(", ") + "." : "");
   renderRecovery();
   renderAuditProgress();
@@ -1985,18 +1988,18 @@ function renderAuditHandoff() {
   select("hackathon-report-label").textContent = changed ? t.auditRunAgain : t.hackathonReport;
   select("audit-handoff").hidden = !handoff;
   if (!handoff) return;
-  const { run, item, sourceStatus } = handoff;
+  const { run, item, sourceStatus, setCheck } = handoff;
   const finding = Boolean(item.question);
   const decision = finding && state.auditDecisions.get(auditDecisionKey(run, item));
-  const title = finding ? item.id + " · " + t.auditDecision : item.source_id || item.id;
+  const title = setCheck ? item.criterion : finding ? item.id + " · " + t.auditDecision : item.source_id || item.id;
   select("audit-handoff-title").textContent = title;
-  select("audit-handoff-question").textContent = finding ? item.question : item.summary;
+  select("audit-handoff-question").textContent = setCheck ? item.comment : finding ? item.question : item.summary;
   const answer = select("audit-handoff-answer");
   answer.textContent = decision?.answer || "";
   answer.hidden = !decision;
   const back = select("audit-handoff-return");
   back.hidden = state.audit !== run;
-  back.textContent = finding ? t.auditReturn : t.auditReturnRequirement;
+  back.textContent = setCheck ? t.returnSetCheck : finding ? t.auditReturn : t.auditReturnRequirement;
   const status = select("audit-handoff-status");
   const rechecked = state.audit && state.audit.text === spec.value;
   status.textContent = changed ? (rechecked ? "" : t.auditSourceChanged) : (t[sourceStatus] || "");
@@ -2114,9 +2117,9 @@ function applyAuditQueue() {
   runAudit();
 }
 
-function openAuditEvidence(run, item, source) {
+function openAuditEvidence(run, item, source, setCheck = false) {
   const selection = evidenceSelection(spec.value, source);
-  state.auditHandoff = { run, item, sourceStatus: selection ? "auditSourceSelected" : "auditSourceUnmatched" };
+  state.auditHandoff = { run, item, setCheck, sourceStatus: selection ? "auditSourceSelected" : "auditSourceUnmatched" };
   renderAuditHandoff();
   if (selection && locateDocumentLine(spec.value.slice(0, selection[0]).split("\n").length)) return;
   setWorkspacePane("document");
@@ -2185,7 +2188,7 @@ function mountAudit(run, before, focusedBefore) {
       }
     },
     openRepair: item => openAuditRepair(run, item),
-    openEvidence: (item, source) => openAuditEvidence(run, item, source),
+    openEvidence: (item, source, setCheck) => openAuditEvidence(run, item, source, setCheck),
   });
   Object.assign(run, methods);
   for (const id of run.edits.keys()) run.markQueued(id, true);
@@ -2403,14 +2406,17 @@ async function runAudit() {
 }
 
 function syncWorkspaceRoute() {
-  const demo = location.pathname === "/workspace" && new URLSearchParams(location.search).get("demo") === "audit";
+  const params = new URLSearchParams(location.search);
+  const nextCase = location.pathname !== "/workspace" ? null
+    : params.get("case") === "official" ? "official" : params.get("demo") === "audit" ? "training" : null;
   routing();
   if (select("revision-dialog").open) select("revision-dialog").close();
-  if (demo === state.auditDemo) {
+  if (nextCase === activeCase) {
     renderEditor();
     return;
   }
-  if (demo) saveRecovery();
+  const enteringCase = nextCase && !activeCase;
+  if (enteringCase) saveRecovery();
 
   state.loadAttempt++;
   state.reviewAttempt++;
@@ -2422,19 +2428,24 @@ function syncWorkspaceRoute() {
   state.loading = null;
   state.reviewRun = null;
   const auditResults = select("audit-results");
-  if (demo) {
+  if (enteringCase) {
     draftWorkspace = {
       state: Object.fromEntries(documentStateKeys.map(key => [key, state[key]])),
       value: spec.value, selection: [spec.selectionStart, spec.selectionEnd],
       pane: select("review-page").dataset.pane, layout: select("review-page").dataset.layout, auditNodes: [...auditResults.childNodes],
     };
   }
-  const draft = demo ? null : draftWorkspace;
+  const draft = nextCase ? null : draftWorkspace;
   Object.assign(state, draft?.state || newDocumentState());
   state.audit?.setLanguage(state.lang);
-  state.auditDemo = demo;
-  select("review-page").classList.toggle("is-demo", demo);
-  select("demo-tools").hidden = !demo;
+  activeCase = nextCase;
+  state.auditDemo = Boolean(nextCase);
+  select("review-page").classList.toggle("is-demo", Boolean(nextCase));
+  select("demo-tools").hidden = !nextCase;
+  const caseLabel = select("case-label");
+  caseLabel.dataset.i18n = nextCase === "official" ? "officialCase" : "demoLabel";
+  caseLabel.textContent = copy()[caseLabel.dataset.i18n];
+  select("official-source").hidden = nextCase !== "official";
   select("workflow-message").textContent = "";
   spec.value = draft?.value || "";
   spec.setSelectionRange(...(draft?.selection || [0, 0]));
@@ -2448,22 +2459,23 @@ function syncWorkspaceRoute() {
   clearActivity();
   renderEditor();
   renderReport();
-  if (demo) openAuditDemo();
+  if (nextCase) openAuditDemo();
   else draftWorkspace = null;
 }
 
 async function openAuditDemo() {
   const attempt = ++state.loadAttempt;
-  state.loading = "example";
+  const official = activeCase === "official";
+  state.loading = official ? "official" : "example";
   state.notice = "";
   renderEditor();
   try {
-    const response = await responseFor("/qr-refund-demo.docx");
+    const response = await responseFor(official ? "/api/official-input" : "/qr-refund-demo.docx");
     const content = await response.blob();
     if (attempt !== state.loadAttempt) return;
-    await upload(new File([content], "qr-refund-demo.docx", { type: content.type }));
+    await upload(new File([content], official ? "requirements.md" : "qr-refund-demo.docx", { type: content.type }));
   } catch (error) {
-    if (attempt === state.loadAttempt) state.notice = error.message || "generic";
+    if (attempt === state.loadAttempt) state.notice = official ? "official_input_unavailable" : error.message || "generic";
   } finally {
     if (attempt === state.loadAttempt) {
       state.loading = null;
@@ -2579,7 +2591,8 @@ select("audit-handoff-return").addEventListener("click", () => {
   const handoff = state.auditHandoff;
   if (!handoff || handoff.run !== state.audit) return;
   setWorkspacePane("findings");
-  if (handoff.item.question) handoff.run.revealFinding(handoff.item.id);
+  if (handoff.setCheck) handoff.run.revealSetCheck(handoff.item.criterion);
+  else if (handoff.item.question) handoff.run.revealFinding(handoff.item.id);
   else handoff.run.revealRequirement(handoff.item.id);
 });
 select("back-to-finding").addEventListener("click", () => {

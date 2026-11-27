@@ -22,16 +22,16 @@ export function evidenceSelection(text, { line, end, quote }) {
   return start >= 0 && text.indexOf(quote, start + 1) < 0 ? [start, start + quote.length] : null;
 }
 
-function evidenceList(sources, openEvidence) {
+function evidenceList(sources, openEvidence, labelText, labelAttribute) {
   const list = node("div", "", "audit-evidence");
   for (const source of sources) {
     const quote = node("figure");
     quote.append(node("figcaption", [source.location, source.section].filter(Boolean).join(" · ")),
       node("blockquote", source.quote));
     if (openEvidence) {
-      const edit = node("button", "Открыть в редакторе", "button button-compact secondary audit-open-source");
+      const edit = labelText(node("button", "", "button button-compact secondary audit-open-source"), "Показать в ТЗ", "Show in specification");
       edit.type = "button";
-      edit.setAttribute("aria-label", `Открыть в редакторе · ${source.location}`);
+      labelAttribute(edit, "aria-label", "Показать в ТЗ", "Show in specification", source.location);
       edit.addEventListener("click", () => openEvidence(source));
       quote.append(edit);
     }
@@ -183,9 +183,14 @@ export function renderAudit(host, audit, {
   const cards = new Map();
   const repairButtons = new Map();
   const requirementCards = new Map();
+  const setCards = new Map();
   const requirementLabels = new Map(requirements.map(item => [item.id, item.source_id || item.id]));
   const translations = [];
   const kk = {
+    "Итог": "Қорытынды", "Отдельные требования": "Жеке талаптар", "Набор в целом": "Талаптар жиыны",
+    "Паспорт прогона": "Тексеру деректері", "Проверка набора требований": "Талаптар жиынын тексеру",
+    "Показать в ТЗ": "ТЗ-дан көрсету", "Файл": "Файл", "Время": "Уақыты", "Режим": "Режім", "Коммит SanA1": "SanA1 коммиті",
+    "Можно начинать разработку": "Әзірлеуді бастауға болады", "Ограниченная проверка": "Шектеулі тексеру",
     "Разделы аудита": "Аудит бөлімдері", "Детали": "Толығырақ", "Результат": "Нәтиже", "Правки": "Түзетулер",
     "Сравнение": "Салыстыру", "Файлы": "Файлдар", "Требования": "Талаптар", "Паспорт": "Аудит деректері",
     "Есть блокирующие дефекты": "Жұмысты бөгейтін ақаулар бар", "Нужны уточнения": "Нақтылау керек",
@@ -221,8 +226,8 @@ export function renderAudit(host, audit, {
     translations.push(() => { label.data = local(ru, en); });
     return element;
   }
-  function labelAttribute(element, attribute, ru, en) {
-    const update = () => element.setAttribute(attribute, local(ru, en));
+  function labelAttribute(element, attribute, ru, en, suffix) {
+    const update = () => element.setAttribute(attribute, local(ru, en) + (suffix ? " · " + suffix : ""));
     translations.push(update);
     update();
   }
@@ -230,28 +235,14 @@ export function renderAudit(host, audit, {
   const navigation = node("div", "", "audit-navigation");
   navigation.setAttribute("role", "group");
   labelAttribute(navigation, "aria-label", "Разделы аудита", "Audit sections");
-  const more = details("", "workspace-menu audit-more");
-  const moreButton = labelText(more.firstElementChild, "Детали", "Details");
-  moreButton.className = "audit-tab";
-  const moreItems = node("div", "", "workspace-menu-items");
-  more.append(moreItems);
-  more.addEventListener("keydown", event => {
-    if (event.key !== "Escape" || !more.open) return;
-    event.stopPropagation();
-    more.open = false;
-    moreButton.focus();
-  });
-  more.addEventListener("focusout", event => {
-    if (event.relatedTarget && !more.contains(event.relatedTarget)) more.open = false;
-  });
   const panels = new Map();
   const sections = [
-    ["overview", "Результат", "Result", null],
+    ["overview", "Итог", "Summary", null],
     ["findings", "Правки", "Revisions", findings.length],
   ];
   if (comparison) sections.push(["changes", "Сравнение", "Comparison", null]);
   sections.push(["files", "Файлы", "Files", null],
-    ["requirements", "Требования", "Requirements", requirements.length], ["checks", "Паспорт", "Run details", null]);
+    ["requirements", "Отдельные требования", "Individual requirements", null], ["checks", "Набор в целом", "Whole set", null]);
   let activePanel;
   for (const [key, ru, en, amount] of sections) {
     const panel = node("section", "", "audit-pane");
@@ -259,21 +250,19 @@ export function renderAudit(host, audit, {
     panel.tabIndex = -1;
     labelAttribute(panel, "aria-label", ru, en);
     let button;
-    if (["requirements", "checks"].includes(key)) {
+    if (["overview", "requirements", "checks"].includes(key)) {
       button = labelText(node("button", "", "audit-tab"), ru, en);
       button.type = "button";
       button.setAttribute("aria-controls", panel.id);
       if (amount !== null) button.append(" ", node("span", String(amount), "audit-tab-count"));
       button.addEventListener("click", () => {
         showPanel(key);
-        more.open = false;
         panel.focus();
       });
-      moreItems.append(button);
+      navigation.append(button);
     }
     panels.set(key, { panel, button });
   }
-  navigation.append(more);
 
   function showPanel(selected) {
     if (selected === activePanel) return;
@@ -282,7 +271,7 @@ export function renderAudit(host, audit, {
       panel.hidden = key !== selected;
       button?.setAttribute("aria-pressed", String(key === selected));
     }
-    more.dataset.active = String(Boolean(panels.get(selected).button));
+    navigation.hidden = !panels.get(selected).button;
     host.closest(".results-panel")?.scrollTo({ top: 0 });
     onPanelChange();
   }
@@ -310,15 +299,17 @@ export function renderAudit(host, audit, {
   header.append(meta);
 
   const reportDownloads = node("div", "", "audit-actions");
-  for (const format of ["md", "json"]) {
+  function reportButton(format) {
     const button = labelText(node("button", "", "button button-compact secondary"),
       format === "md" ? "Отчёт (.md)" : "Данные (.json)", format === "md" ? "Report (.md)" : "Data (.json)");
     button.type = "button";
     labelAttribute(button, "aria-label", format === "md" ? "Скачать отчёт (.md)" : "Скачать данные (.json)",
       format === "md" ? "Download report (.md)" : "Download data (.json)");
     button.addEventListener("click", () => download(format));
-    reportDownloads.append(button);
+    return button;
   }
+  reportDownloads.append(reportButton("md"), reportButton("json"));
+  header.append(reportButton("md"));
   const documentDownloads = node("div", "", "audit-actions");
   const documentHint = node("p", "", "audit-verdict");
   const documentStatus = node("p", "", "audit-mode-note");
@@ -498,7 +489,7 @@ export function renderAudit(host, audit, {
     if (item.confidence === "low") {
       card.append(labelText(node("p", "", "audit-mode-note"), "Проверьте по источнику", "Verify against the source"));
     }
-    card.append(fact(item.criterion, item.engine), evidenceList(item.evidence, source => openEvidence(item, source)),
+    card.append(fact(item.criterion, item.engine), evidenceList(item.evidence, source => openEvidence(item, source), labelText, labelAttribute),
       fact("Вопрос автору", item.question), fact("Что исправить", item.next_step));
     if (item.visual_evidence) {
       const { number, event, figure_status, table_status, observed } = item.visual_evidence;
@@ -612,7 +603,7 @@ export function renderAudit(host, audit, {
     const cells = tableRow(item.summary) ? tableCells(item.summary).filter(Boolean) : [];
     card.firstElementChild.append(node("span", location, "audit-requirement-meta"),
       node("span", cells.length ? cells.join(" · ") : item.summary));
-    card.append(evidenceList([item.source], source => openEvidence(item, source)), fact("Оценка", item.assessment));
+    card.append(evidenceList([item.source], source => openEvidence(item, source), labelText, labelAttribute), fact("Оценка", item.assessment));
     if (item.findings.length) {
       card.append(links(item.findings, revealFinding));
     }
@@ -644,16 +635,24 @@ export function renderAudit(host, audit, {
   search.addEventListener("input", filterRequirements);
   filterRequirements();
   panels.get("requirements").panel.append(searchLabel, searchStatus, inventory);
-  const checks = details("Проверка набора требований", "audit-section");
+  const checks = details("", "audit-section");
+  labelText(checks.firstElementChild, "Проверка набора требований", "Assessment of the whole set");
   checks.open = true;
   for (const check of audit.checks) {
     const row = details(`${check.criterion} · ${check.status}`, "audit-card");
-    row.append(node("p", check.comment, "audit-verdict"), evidenceList(check.evidence));
+    row.append(node("p", check.comment, "audit-verdict"),
+      evidenceList(check.evidence, source => openEvidence(check, source, true), labelText, labelAttribute));
+    setCards.set(check.criterion, row);
     checks.append(row);
   }
-  const provenance = details("Паспорт прогона", "audit-section");
-  provenance.append(fact("Файл", audit.file), fact("Время", audit.generated_at), fact("Коммит SanA1", audit.version),
-    fact("SHA-256", audit.sha256), fact("Режим", mode));
+  const provenance = details("", "audit-section");
+  labelText(provenance.firstElementChild, "Паспорт прогона", "Run details");
+  for (const [ru, en, value] of [["Файл", "File", audit.file], ["Время", "Timestamp", audit.generated_at],
+    ["Коммит SanA1", "SanA1 commit", audit.version], ["SHA-256", "SHA-256", audit.sha256], ["Режим", "Mode", mode]]) {
+    const field = fact("", value);
+    labelText(field.firstElementChild, ru, en);
+    provenance.append(field);
+  }
   for (const stage of audit.passes) provenance.append(fact(stage.stage, stage.model));
   const notices = node("div", "", "audit-notices");
   for (const warning of audit.warnings) notices.append(node("p", warning));
@@ -754,6 +753,11 @@ export function renderAudit(host, audit, {
   }
   return {
     revealFinding, revealRequirement, currentPanel: () => activePanel,
+    revealSetCheck(criterion) {
+      showPanel("checks");
+      const card = setCards.get(criterion);
+      if (card) reveal(card);
+    },
     openPanel(key) {
       showPanel(key);
       panels.get(key).panel.focus();

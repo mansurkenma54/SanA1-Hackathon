@@ -46,6 +46,7 @@ NORMATIVE_TEXT = re.compile(
 )
 EXAMPLE_HEADING = re.compile(r"\s*(?:examples?|примеры?)\s*[:.]?\s*", re.I)
 EXAMPLE_INTRO = re.compile(r"^\s*(?:[-+*]\s+|\d+[.)]\s+)?\**(?:example|пример)\**\s*:", re.I)
+SENTENCE_END = re.compile(r"""[.!?…][»"'”)*_]*\s*$""")
 PARSER = MarkdownIt("commonmark").enable("table")
 PIPE_ROW = re.compile(r"\s*\|.*\|\s*")
 Criteria = Literal["clarity", "verifiability", "atomicity", "feasibility",
@@ -270,9 +271,14 @@ def source_blocks(text, structured, table_rows=None):
                           for line in range(start + 1, stop + 1))
             continue
         if kind == "paragraph":
-            # Markdown joins consecutive lines into one paragraph, even when a new clause ID starts a line.
+            # CommonMark can merge independent obligations into one paragraph.
+            # Keep soft-wrapped sentences and the continuation of a numbered clause together.
             for next_start in range(start + 1, stop):
-                if REQUIREMENT_LABEL.match(lines[next_start]):
+                next_text = lines[next_start].lstrip(" \t*_")
+                new_obligation = (next_text[:1].isupper() and SENTENCE_END.search(lines[next_start - 1])
+                                  and NORMATIVE_TEXT.search(next_text)
+                                  and not REQUIREMENT_LABEL.match(lines[start]) and not EXAMPLE_INTRO.match(lines[start]))
+                if REQUIREMENT_LABEL.match(lines[next_start]) or new_obligation:
                     blocks.append(Block(start + 1, next_start, section, kind,
                                         "\n".join(lines[start:next_start]).strip()))
                     start = next_start
@@ -453,7 +459,7 @@ def set_results(result, blocks):
         if not valid_enough(check.comment):
             raise ValueError("gemini_invalid_response")
         refs = [ref for ref in dict.fromkeys(check.refs) if ref in blocks]
-        if not refs:
+        if not refs or any(ref not in blocks for ref in check.refs):
             checks[key] = SetCheck(outcome="unknown", comment="Модель не указала проверяемое основание.", refs=[])
         else:
             checks[key] = check.model_copy(update={"refs": refs})

@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from hackathon_cli import audit_document
-from hackathon_review import needs_assessment, source_blocks
+from hackathon_review import SetReview, needs_assessment, set_results, source_blocks
 
 
 CONFIG = {"GEMINI_API_KEY": "test-only", "GEMINI_MODEL": "gemini-test", "GEMINI_FALLBACK_MODEL": ""}
@@ -31,6 +31,32 @@ def assessment(block):
 
 
 class MandatoryCoverageTests(unittest.TestCase):
+    def test_adjacent_unnumbered_obligations_require_separate_source_lines(self):
+        source = ("# Processing\n"
+                  "The service must store each accepted transfer\n"
+                  "before acknowledging receipt.\n"
+                  "The client shall preserve its confirmation.\n"
+                  "Оператор должен получить номер операции.\n\n"
+                  "Example: The simulator must log TEST.\n"
+                  "Test clients must read this value.\n\n"
+                  "REQ-2. The processor must log the outcome.\n"
+                  "This entry must include the identifier.")
+        _, blocks = source_blocks(source, structured=True)
+        required = [block for block in blocks if needs_assessment(block)]
+        self.assertEqual([(block.line, block.end) for block in required], [(2, 3), (4, 4), (5, 5), (10, 11)])
+        self.assertEqual(required[-1].source_id, "REQ-2")
+        for block in required:
+            self.assertEqual(block.text, "\n".join(source.splitlines()[block.line - 1:block.end]))
+
+    def test_set_assessment_cannot_keep_conclusion_with_invented_source(self):
+        _, blocks = source_blocks("The bank must retain the transfer ID.", structured=True)
+        good = {"outcome": "ok", "comment": "Пункт содержит проверяемое обязательство.", "refs": ["L1"]}
+        payload = dict.fromkeys(("consistency", "completeness", "traceability", "feasibility"), good)
+        payload["consistency"] = {**good, "refs": ["L1", "L94"]}
+        reviewed, _ = set_results(SetReview.model_validate({**payload, "issues": []}), {"L1": blocks[0]})
+        self.assertEqual((reviewed.consistency.outcome, reviewed.consistency.refs), ("unknown", []))
+        self.assertEqual(reviewed.completeness.outcome, "ok")
+
     def test_explicit_unnumbered_obligations_across_languages(self):
         obligations = [
             "A client is required to send a reference.",

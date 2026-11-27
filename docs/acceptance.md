@@ -1,13 +1,19 @@
 # Приёмка единого аудита
 
-Проверка привязана к опубликованной версии Markdown организаторов. Она сверяет SHA-256, каждую цитату с её строками и независимые вопросы для групп, где требуется несколько решений. [Исходный документ](https://github.com/BCC-HUB/ai-requirements-validator-task/blob/928c1aa364265426105b69ba7a3444eac11b22db/docs/requirements.md)
+Эти 15 контрольных тем размечены командой по конкретной версии ТЗ. Проверяющий скрипт сверяет SHA-256, каждую дословную цитату с указанными строками и наличие вопросов для отдельных решений. Баллы участнику выставляет жюри по четырём критериям. [Исходный документ](https://github.com/BCC-HUB/ai-requirements-validator-task/blob/928c1aa364265426105b69ba7a3444eac11b22db/docs/requirements.md) · [Критерии жюри](https://bcchubagents.mnu.kz/#judging)
+
+Скачайте исходный файл и настройте ключ по [инструкции запуска](../README.md#как-воспроизвести-отчёт). Чтобы проверить именно сдаваемый результат, сформируйте Markdown и JSON одной командой аудита, затем передайте скрипту JSON этого прогона.
 
 ```sh
-python -m tools.check_official_case requirements.md
-python -m tools.check_expanded_acceptance requirements.md
-python run.py requirements.md reports/review-ru.md
-python run.py requirements.md reports/review.json
-python -m tools.check_expanded_acceptance requirements.md --report reports/review.json
+python run.py ../sana1-run/requirements.md ../sana1-run/review.md --answers --json
+python -m tools.check_expanded_acceptance ../sana1-run/requirements.md --report ../sana1-run/review.json
+```
+
+В сводке скрипта проверьте режим, число найденных тем и число сверенных цитат. Для прогона правил без ключа используйте отдельные команды. Первая сравнивает исходник с вариантами, где устранены отдельные дефекты. Вторая проверяет все 15 тем.
+
+```sh
+python -m tools.check_official_case ../sana1-run/requirements.md
+python -m tools.check_expanded_acceptance ../sana1-run/requirements.md
 ```
 
 | № | Контроль | Основание локального прогона |
