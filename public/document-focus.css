@@ -1,0 +1,8 @@
+.document-page .source-highlight {
+  outline: 2px solid #72d695;
+  outline-offset: -2px;
+  border-radius: 3px;
+  background: #203827;
+}
+.doc-table .source-highlight > :is(th, td) { background: #203827; color: #eef9ef; }
+.doc-originals:first-child { border-top: 0; margin-bottom: 12px; border-bottom: 1px solid var(--line); }

@@ -1,0 +1,9 @@
+.profile-note { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+.standard-info > summary, .standard-inventory > summary { cursor: pointer; color: #b4e7c0; }
+.standard-info[open] { flex: 1 0 100%; }
+.standard-content { max-height: min(24vh, 13rem); overflow: auto; margin-top: 5px; padding: 8px 10px; border-inline-start: 2px solid #486650; }
+.standard-content p { margin: 4px 0; }
+.standard-sources { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 5px; }
+.standard-inventory { font-size: 13px; }
+.standard-inventory ul { margin: 4px 0 9px; padding-inline-start: 21px; }
+.profile-options { max-width: 34rem; }

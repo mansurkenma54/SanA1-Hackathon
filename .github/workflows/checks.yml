@@ -1,0 +1,35 @@
+name: SanA1 checks
+on: [push, pull_request]
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: "3.13"
+          cache: pip
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+          package-manager-cache: false
+      - run: python -m pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -q
+      - run: node --test tests/test_audit_comparison.mjs tests/test_audit_repair.mjs tests/test_document_view.mjs tests/test_workspace_session.mjs tests/test_audit_questions.mjs
+      - name: Check both QR refund documents with local rules
+        run: |
+          python -m tools.check_qr_case
+          python -m tools.check_qr_case tests/fixtures/qr-refund-corrected.docx
+      - name: Check the official case and corrected variants
+        run: |
+          curl --fail --silent --show-error --max-time 30 \
+            'https://raw.githubusercontent.com/BCC-HUB/ai-requirements-validator-task/928c1aa364265426105b69ba7a3444eac11b22db/docs/requirements.md' \
+            -o "$RUNNER_TEMP/hackathon-requirements.md"
+          python -m tools.check_official_case "$RUNNER_TEMP/hackathon-requirements.md"
+          python -m tools.check_expanded_acceptance "$RUNNER_TEMP/hackathon-requirements.md"

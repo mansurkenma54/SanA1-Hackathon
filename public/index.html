@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090b0a">
+  <meta name="description" content="SanA1 reviews FinTech specifications and shows the evidence behind each finding.">
+  <title>SanA1 · Specification review</title>
+  <link rel="icon" href="/favicon.png" type="image/png" sizes="96x96">
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/document-focus.css">
+  <link rel="stylesheet" href="/correction.css">
+  <link rel="stylesheet" href="/standards.css">
+  <link rel="stylesheet" href="/audit.css">
+  <link rel="stylesheet" href="/workspace.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <svg class="icon-library" width="0" height="0" aria-hidden="true">
+    <symbol id="icon-split" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M3 4h18v16H3zm2 2v12h6V6zm8 0v12h6V6z"/></symbol>
+    <symbol id="icon-terminal" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M4 3h16l2 2v14l-2 2H4l-2-2V5zm1 4v10h14V7zm2 1 4 4-4 4-2-2 2-2-2-2zm5 6h5v2h-5z"/></symbol>
+    <symbol id="icon-home" viewBox="0 0 24 24"><path fill-rule="evenodd" d="m2 10 9-8h2l9 8-2 2-1-1v10h-5v-7h-4v7H5V11l-1 1z"/></symbol>
+    <symbol id="icon-example" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M4 2h11l6 6v12l-2 2H4l-1-1V3zm10 2v6h6zm-6 8v7l6-3.5z"/></symbol>
+    <symbol id="icon-document" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M4 2h11l6 6v12l-2 2H4l-1-1V3zm10 2v6h6zm-7 9v2h10v-2zm0 4v2h7v-2z"/></symbol>
+    <symbol id="icon-findings" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M2 4h4v4H2zm7 0h13v4H9zM2 10h4v4H2zm7 0h13v4H9zM2 16h4v4H2zm7 0h10v4H9z"/></symbol>
+    <symbol id="icon-scan" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M5 2h5v3H5v5H2V5zm9 0h5l3 3v5h-3V5h-5zM2 14h3v5h5v3H5l-3-3zm17 0h3v5l-3 3h-5v-3h5zM6 10h12v4H6z"/></symbol>
+    <symbol id="icon-upload" viewBox="0 0 24 24"><path fill-rule="evenodd" d="m5 9 7-7 7 7-2.4 2.4-2.9-2.9V16h-3.4V8.5l-2.9 2.9zM2 15h3v4h14v-4h3v4l-3 3H5l-3-3z"/></symbol>
+    <symbol id="icon-download" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M10.3 2h3.4v7.5l2.9-2.9L19 9l-7 7-7-7 2.4-2.4 2.9 2.9zM2 15h3v4h14v-4h3v4l-3 3H5l-3-3z"/></symbol>
+    <symbol id="icon-clear" viewBox="0 0 24 24"><path fill-rule="evenodd" d="m4 6.5 2.5-2.5 5.5 5.5L17.5 4 20 6.5 14.5 12l5.5 5.5-2.5 2.5-5.5-5.5L6.5 20 4 17.5 9.5 12z"/></symbol>
+    <symbol id="icon-evaluate" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M2 3h3v16h17v3H5l-3-3zm5 9h3v5H7zm5-5h3v10h-3zm5-5h4v15h-4z"/></symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24"><path fill-rule="evenodd" d="m2 12 3-3 5 5L19 5l3 3-12 12z"/></symbol>
+    <symbol id="icon-alert" viewBox="0 0 24 24"><path fill-rule="evenodd" d="m10 2 4 0 9 17-1 2H2l-1-2zm.5 6 .4 6h2.2l.4-6zm0 8v2.5h3V16z"/></symbol>
+    <symbol id="icon-copy" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M3 2h12v3H5v11H2V3zm6 5h11l2 2v11l-2 2H9l-2-2V9zm1 3v9h9v-9z"/></symbol>
+    <symbol id="icon-edit" viewBox="0 0 24 24"><path fill-rule="evenodd" d="m15 4 3-3 5 5-3 3zM4 15 13 6l5 5-9 9-7 2z"/></symbol>
+    <symbol id="icon-question" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M4 2h16l2 2v12l-2 2h-8l-7 5v-5H4l-2-2V4zm4 6h3V7h3v2l-3.5 2v2h3v-.8L17 10V7l-2-2h-5L8 7zm2.5 6v2h3v-2z"/></symbol>
+    <symbol id="icon-model" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M8 2h8v2h3l1 1v3h2v3h-2v2h2v3h-2v3l-1 1h-3v2h-3v-2h-2v2H8v-2H5l-1-1v-3H2v-3h2v-2H2V8h2V5l1-1h3zm-1 5v10h10V7zm3 3h4v4h-4z"/></symbol>
+    <symbol id="icon-plus" viewBox="0 0 24 24"><path fill-rule="evenodd" d="M10 3h4v7h7v4h-7v7h-4v-7H3v-4h7z"/></symbol>
+    <symbol id="icon-pause" viewBox="0 0 24 24"><path d="M5 4h5v16H5zm9 0h5v16h-5z"/></symbol>
+    <symbol id="icon-play" viewBox="0 0 24 24"><path d="M6 3v18l15-9z"/></symbol>
+  </svg>
+  <template id="document-art">
+    <svg class="state-art" viewBox="0 0 164 116" aria-hidden="true">
+      <rect class="art-frame" x="20" y="12" width="124" height="92" rx="12"/>
+      <path class="art-corners" d="M32 35v-8h8m84 0h8v8m0 46v8h-8m-84 0h-8v-8"/>
+      <path class="art-paper-back" d="M67 25h31l20 19v43a5 5 0 0 1-5 5H67a5 5 0 0 1-5-5V30a5 5 0 0 1 5-5Z"/>
+      <path class="art-paper" d="M57 19h30l18 18v48a5 5 0 0 1-5 5H57a5 5 0 0 1-5-5V24a5 5 0 0 1 5-5Z"/>
+      <path class="art-fold" d="M87 19v15a3 3 0 0 0 3 3h15"/>
+      <path class="art-lines" d="M65 47h27m-27 11h27M65 69h17"/>
+      <circle class="art-badge" cx="114" cy="83" r="16"/>
+      <use class="art-status-icon" x="104" y="73" width="20" height="20"/>
+    </svg>
+  </template>
+  <a class="skip-link" href="#main" data-i18n="skip">Skip to workspace</a>
+  <div class="shell">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="/" data-route aria-label="SanA1">
+          <img class="brand-mark" src="/brand-mark.png" width="44" height="28" alt="">
+          <span class="brand-name">SanA1</span>
+        </a>
+        <nav class="navigation" aria-label="Workspace">
+          <a href="/" data-route id="nav-home" aria-current="page"><svg class="control-icon" aria-hidden="true"><use href="#icon-home"></use></svg><span data-i18n="homeNav">Home</span></a>
+          <a href="/workspace" data-route id="nav-review"><svg class="control-icon" aria-hidden="true"><use href="#icon-terminal"></use></svg><span data-i18n="reviewNav">Workspace</span></a>
+        </nav>
+        <div class="top-actions">
+          <div class="language" role="group" aria-label="Language">
+            <button type="button" data-lang="ru" lang="ru" aria-label="Русский" aria-pressed="true">RU</button>
+            <button type="button" data-lang="kk" lang="kk" aria-label="Қазақша" aria-pressed="false">ҚАЗ</button>
+            <button type="button" data-lang="en" lang="en" aria-label="English" aria-pressed="false">EN</button>
+          </div>
+          <button id="theme-toggle" type="button" class="button secondary button-compact" aria-pressed="false"></button>
+        </div>
+      </div>
+    </header>
+      <main id="main" class="main" tabindex="-1">
+        <section id="home-page" class="view" aria-labelledby="home-heading">
+          <header class="hero">
+            <canvas id="hero-field" class="hero-field" aria-hidden="true"></canvas>
+            <div class="hero-inner">
+              <h1 id="home-heading" tabindex="-1"><span data-i18n="headlineStart">Review a</span> <span class="hero-accent" data-i18n="headlineEnd">specification</span></h1>
+              <p data-i18n="reviewIntro">Audit the whole specification, clarify conflicting requirements and download the reviewed document.</p>
+              <div class="hero-actions">
+                <a href="/workspace" data-route class="button primary hero-button" id="jump-editor"><svg class="control-icon" aria-hidden="true"><use href="#icon-scan"></use></svg><span data-i18n="start">Start</span></a>
+              </div>
+            </div>
+          </header>
+          <section class="home-guide" aria-labelledby="home-guide-title">
+            <h2 id="home-guide-title" data-i18n="guideTitle">Как это работает</h2>
+            <ol>
+              <li><strong data-i18n="guideUpload">Upload</strong></li>
+              <li><strong data-i18n="guideReview">Check</strong></li>
+              <li><strong data-i18n="guideExport">Revise and download</strong></li>
+            </ol>
+          </section>
+        </section>
+        <section id="review-page" class="view" data-pane="document" data-layout="split" data-has-results="false" aria-labelledby="review-heading" hidden>
+          <header class="workspace-intro">
+            <h1 id="review-heading" tabindex="-1" data-i18n="workspaceTitle">Specification review</h1>
+            <div id="profile-host"></div>
+            <div id="demo-tools" class="demo-tools" hidden>
+              <span class="demo-label" data-i18n="demoLabel">Sample document</span>
+              <a href="/workspace" data-route class="button button-compact secondary"><svg class="control-icon" aria-hidden="true"><use href="#icon-document"></use></svg><span data-i18n="myDocument">My document</span></a>
+            </div>
+          </header>
+          <ol id="audit-pipeline" class="audit-pipeline" aria-labelledby="review-heading">
+            <li data-phase="upload"><span aria-hidden="true">1</span><strong data-i18n="phaseUpload">Upload</strong></li>
+            <li data-phase="read"><span aria-hidden="true">2</span><strong data-i18n="phaseRead">Parse</strong></li>
+            <li data-phase="segment"><span aria-hidden="true">3</span><strong data-i18n="phaseSegment">Extract requirements</strong></li>
+            <li data-phase="requirements"><span aria-hidden="true">4</span><strong data-i18n="phaseRequirements">Review requirements</strong></li>
+            <li data-phase="consistency"><span aria-hidden="true">5</span><strong data-i18n="phaseConsistency">Review set and attachments</strong></li>
+            <li data-phase="report"><span aria-hidden="true">6</span><strong data-i18n="phaseReport">Report</strong></li>
+          </ol>
+          <div class="workspace-shell">
+          <nav id="workflow" class="workflow" aria-label="Review steps">
+            <p class="workflow-title" data-i18n="workflowLabel">Review steps</p>
+            <ol id="audit-progress" class="audit-progress">
+              <li aria-current="step"><button type="button" data-step="document"><span aria-hidden="true">1</span><strong data-i18n="workflowDocument">Document</strong></button></li>
+              <li><button type="button" data-step="overview" disabled><span aria-hidden="true">2</span><strong data-i18n="workflowAudit">Audit</strong></button></li>
+              <li><button type="button" data-step="findings" disabled><span aria-hidden="true">3</span><strong data-i18n="workflowRepairs">Revisions</strong></button></li>
+              <li><button type="button" data-step="changes" disabled><span aria-hidden="true">4</span><strong data-i18n="workflowRecheck">Recheck</strong></button></li>
+              <li><button type="button" data-step="files" disabled><span aria-hidden="true">5</span><strong data-i18n="workflowExport">Files</strong></button></li>
+            </ol>
+          <p id="workflow-message" class="workflow-message" aria-live="polite"></p>
+          </nav>
+          <div class="workspace-content">
+          <div class="workspace-bar" id="workspace-bar" hidden>
+            <nav id="workspace-jumps" class="workspace-jumps" aria-labelledby="review-heading">
+              <button type="button" id="split-view" aria-controls="document-pane findings-pane" aria-pressed="true"><svg class="control-icon" aria-hidden="true"><use href="#icon-split"></use></svg><span data-i18n="splitView">Side by side</span></button>
+              <button type="button" data-jump="input-heading" aria-controls="document-pane" aria-pressed="false"><svg class="control-icon" aria-hidden="true"><use href="#icon-document"></use></svg><span data-i18n="documentView">Document</span></button>
+              <button type="button" data-jump="results-heading" aria-controls="findings-pane" aria-pressed="false"><svg class="control-icon" aria-hidden="true"><use href="#icon-findings"></use></svg><span data-i18n="auditTab">Audit &amp; revisions</span><span class="jump-count" id="jump-count"></span></button>
+            </nav>
+          </div>
+          <div class="workspace">
+            <section class="panel editor-panel" id="document-pane" aria-labelledby="input-heading">
+              <div class="panel-head">
+                <div class="panel-title"><svg class="control-icon panel-icon" aria-hidden="true"><use href="#icon-document"></use></svg><h2 id="input-heading" tabindex="-1" data-i18n="inputTitle">Specification</h2></div>
+              </div>
+              <div class="panel-body">
+                <div class="editor-entry">
+                <div class="file-row">
+                  <button class="button button-compact secondary file-pick" id="pick-file" type="button" aria-describedby="file-formats"><svg class="control-icon" aria-hidden="true"><use href="#icon-upload"></use></svg><span data-i18n="upload">Upload file</span></button>
+                  <input id="file" type="file" accept=".txt,.md,.markdown,.docx,.pdf" hidden>
+                  <span class="file-hint" id="file-formats" data-i18n="formats">TXT, MD, DOCX or PDF · up to 4 MB</span>
+                  <p class="file-name" id="file-name" hidden><svg class="control-icon" aria-hidden="true"><use href="#icon-document"></use></svg><span id="file-name-text"></span></p>
+                  <button type="button" class="button button-compact text-button" id="clear" hidden><svg class="control-icon" aria-hidden="true"><use href="#icon-clear"></use></svg><span data-i18n="clear">Clear</span></button>
+                  <button id="demo-load" type="button" class="button button-compact text-button" data-i18n="demoLoad">Load sample</button>
+                </div>
+                <div class="editor-actions" id="editor-actions" hidden>
+                  <button id="hackathon-report" class="button primary" type="button" aria-describedby="review-method" aria-controls="findings-pane" disabled><svg class="control-icon" aria-hidden="true"><use href="#icon-findings"></use></svg><span id="hackathon-report-label" data-i18n="hackathonReport">Проверить</span></button>
+                  <p id="review-method" class="review-method" data-i18n="automaticReview">Text goes to the configured AI provider.</p>
+                </div>
+                <div class="session-recovery" id="session-recovery" hidden>
+                  <label><input id="session-enabled" type="checkbox" aria-describedby="session-scope"> <span data-i18n="sessionEnable">Save work across reloads</span></label>
+                  <p id="session-scope" data-i18n="sessionScope">The text, audit and pending edits stay in this tab.</p>
+                  <p id="session-status" role="status" hidden></p>
+                  <p id="session-pdf-note" data-i18n="sessionPdfNote" hidden>To view the original PDF after reload, upload it again.</p>
+                </div>
+                <div class="document-switch" id="document-switch" hidden>
+                  <div class="document-modes" role="group">
+                    <button type="button" id="show-document" aria-controls="document-preview"><svg class="control-icon" aria-hidden="true"><use href="#icon-document"></use></svg><span data-i18n="documentView">Document</span></button>
+                    <button type="button" id="show-source" aria-controls="spec"><svg class="control-icon" aria-hidden="true"><use href="#icon-edit"></use></svg><span data-i18n="sourceView">Edit text</span></button>
+                    <button type="button" id="show-pdf" aria-controls="pdf-reader" hidden><svg class="control-icon" aria-hidden="true"><use href="#icon-document"></use></svg><span data-i18n="originalPdf">Original PDF</span></button>
+                  </div>
+                  <div class="document-exports">
+                    <button type="button" id="attach-images" data-i18n="attachImages" hidden>Add images</button>
+                    <input id="image-files" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+                    <details id="document-downloads" class="workspace-menu document-downloads">
+                      <summary class="button text-button button-compact"><svg class="control-icon" aria-hidden="true"><use href="#icon-download"></use></svg><span data-i18n="draftDownload">Download draft</span></summary>
+                      <div class="workspace-menu-items">
+                        <button type="button" id="docx-copy" aria-describedby="document-format-notice">Word (.docx)</button>
+                        <button type="button" id="markdown-copy">Markdown (.md)</button>
+                      </div>
+                    </details>
+                  </div>
+                </div>
+                <p id="reading-tip" class="reading-tip" data-i18n="readingTip" hidden>Select a line number or the first table cell to edit that passage.</p>
+                <p id="document-format-notice" class="document-format-notice" role="status" hidden></p>
+                <aside class="audit-handoff" id="audit-handoff" aria-labelledby="audit-handoff-title" hidden>
+                  <div>
+                    <strong id="audit-handoff-title"></strong>
+                    <button type="button" id="audit-handoff-return" class="button button-compact secondary"
+                            data-i18n="auditReturn">Back to the finding</button>
+                  </div>
+                  <p id="audit-handoff-question"></p>
+                  <p id="audit-handoff-answer" hidden></p>
+                  <p id="audit-handoff-status" class="audit-decision-status" role="status" hidden></p>
+                </aside>
+                <div id="editor-notice" class="notice" role="status" hidden>
+                  <span id="editor-notice-message"></span>
+                  <div class="file-progress" aria-hidden="true"><span></span></div>
+                </div>
+                <div class="textarea-area" id="drop-zone">
+                  <div id="document-preview" hidden></div>
+                  <section id="pdf-reader" class="pdf-reader" aria-label="PDF" hidden>
+                    <div class="pdf-controls">
+                      <button id="pdf-previous" type="button" class="button button-compact secondary" aria-label="Previous page">←</button>
+                      <form id="pdf-jump" class="pdf-jump">
+                        <label for="pdf-number" data-i18n="page">Page</label>
+                        <input id="pdf-number" type="number" min="1" step="1" value="1" aria-describedby="pdf-count" required>
+                        <span id="pdf-count"></span>
+                        <button type="submit" class="button button-compact secondary" data-i18n="pdfGo">Go</button>
+                      </form>
+                      <button id="pdf-next" type="button" class="button button-compact secondary" aria-label="Next page">→</button>
+                      <a id="download-pdf" class="button button-compact text-button" data-i18n="downloadPdf" download>Download PDF</a>
+                    </div>
+                    <p id="pdf-original-note" class="pdf-original-note" data-i18n="pdfOriginalNote" hidden>The original PDF stays as uploaded. See your changes in the document view.</p>
+                    <p id="pdf-status" class="pdf-status" role="status" hidden></p>
+                    <button id="pdf-retry" type="button" class="button button-compact secondary" data-i18n="auditRetry" hidden>Retry</button>
+                    <img id="pdf-image" class="pdf-image" alt="" hidden>
+                  </section>
+                  <div id="source-editor" class="source-editor">
+                    <pre id="source-lines" aria-hidden="true" hidden></pre>
+                    <label class="sr-only" for="spec" data-i18n="inputLabel">Specification text</label>
+                    <textarea id="spec" spellcheck="false" wrap="off" aria-describedby="limit" data-placeholder="placeholder" placeholder="Paste your specification here, or drop a file." rows="9"></textarea>
+                  </div>
+                  <div class="drop-mask" aria-hidden="true" data-i18n="drop">Drop your file to load it</div>
+                </div>
+                </div>
+                <div class="editor-meta" id="limit" aria-live="off">
+                  <button id="back-to-finding" class="source-return" type="button" hidden><svg class="control-icon" aria-hidden="true"><use href="#icon-findings"></use></svg><span data-i18n="backToFinding">Back to finding</span></button>
+                  <span id="min-length-tip" data-i18n="minWords" hidden>Use at least four words.</span>
+                  <span id="count">0 / 50,000</span>
+                </div>
+                <details class="activity-console" id="activity-console" hidden>
+                  <summary class="activity-heading">
+                    <span id="activity-title" data-i18n="activityTitle">Activity log</span>
+                    <span id="activity-state" class="activity-state"></span>
+                  </summary>
+                  <ol id="activity-lines" class="activity-lines" aria-labelledby="activity-title"></ol>
+                </details>
+                <span id="review-announcement" class="sr-only" role="status"></span>
+              </div>
+            </section>
+            <section class="panel results-panel" id="findings-pane" aria-labelledby="results-heading">
+              <div class="panel-head">
+                <div class="panel-title"><svg class="control-icon panel-icon" aria-hidden="true"><use href="#icon-findings"></use></svg><h2 id="results-heading" tabindex="-1" data-i18n="resultTitle">Findings</h2><span class="result-count" id="result-count" hidden></span></div>
+                <button class="button button-compact secondary" id="download-toggle" type="button" aria-expanded="false" aria-controls="download-options" hidden><svg class="control-icon" aria-hidden="true"><use href="#icon-download"></use></svg><span data-i18n="download">Download</span></button>
+              </div>
+              <div id="download-options" class="download-options" hidden>
+                <button class="button button-compact secondary" id="download-word" type="button" data-i18n="downloadWord">Word document (.docx)</button>
+                <button class="button button-compact text-button" id="export" type="button" data-i18n="export">Report (JSON)</button>
+                <button class="button button-compact text-button" id="download-questions" type="button" data-i18n="questionsFile">Author questions</button>
+                <button class="button button-compact text-button" id="download-formatted" type="button" data-i18n="downloadFormatted">Revised document (HTML)</button>
+                <button class="button button-compact text-button" id="download-text" type="button" data-i18n="downloadText">Revised text (TXT)</button>
+              </div>
+              <p id="audit-announcement" class="sr-only" role="status"></p>
+              <section id="repair-queue" class="repair-queue" aria-labelledby="repair-queue-title" hidden>
+                <div>
+                  <h3 id="repair-queue-title"></h3>
+                  <ul id="repair-queue-list"></ul>
+                </div>
+                <div class="repair-queue-actions">
+                  <button id="apply-audit-queue" class="button primary" type="button" data-i18n="applyAuditQueue">Apply and recheck</button>
+                  <p id="repair-queue-status" role="status"></p>
+                </div>
+              </section>
+              <div id="audit-state" class="audit-state" hidden>
+                <div class="audit-state-text">
+                  <h3 id="audit-state-title"></h3>
+                  <p id="hackathon-status"></p>
+                  <details id="audit-log" hidden><summary data-i18n="auditLog">Audit log</summary>
+                    <ol id="audit-console" class="audit-console"></ol>
+                  </details>
+                  <span id="audit-elapsed" class="audit-elapsed" aria-hidden="true" hidden></span>
+                </div>
+                <div class="audit-state-actions">
+                  <button id="audit-state-stop" class="button button-compact secondary" type="button" data-i18n="auditStop">Stop waiting</button>
+                  <button id="audit-state-retry" class="button button-compact primary" type="button" data-i18n="auditRetry">Run again</button>
+                </div>
+              </div>
+              <p id="export-error" class="notice" role="alert" hidden></p>
+              <p id="audit-fallback" class="audit-fallback" role="status" hidden></p>
+              <p id="revision-undo" class="revision-undo" hidden>
+                <button id="undo-audit-revision" class="button button-compact secondary" type="button" data-i18n="undoAuditRevision">Undo last revision</button>
+              </p>
+              <section id="audit-results" class="results-content audit-results" aria-labelledby="results-heading" hidden></section>
+              <div id="results" class="results-content" aria-live="polite"></div>
+            </section>
+          </div>
+          </div>
+          </div>
+        </section>
+      </main>
+    <footer class="site-footer">
+      <div class="site-footer-inner">
+        <a class="footer-brand" href="/" data-route>SanA1</a>
+        <nav class="footer-links" aria-label="SanA1">
+          <a href="/reports/official.md" data-i18n="officialReport">Отчёт по ТЗ</a>
+          <a href="https://github.com/mansurkenma54/SanA1-Hackathon" data-i18n="repositoryLink">Репозиторий</a>
+          <a href="/workspace" data-route data-i18n="reviewNav">Workspace</a>
+          <a href="/api/audit-contract" data-i18n="apiContract">Audit API</a>
+          <a href="https://github.com/BCC-HUB/ai-requirements-validator-task" data-i18n="challengeBrief">Hackathon brief</a>
+        </nav>
+      </div>
+    </footer>
+  </div>
+  <dialog id="revision-dialog" class="revision-dialog" aria-labelledby="revision-title"></dialog>
+</body>
+</html>
