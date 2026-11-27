@@ -1,4 +1,5 @@
 import { tableCells, tableRow } from "./document-view.js";
+import { reportLanguagePanel } from "./report-language.js";
 
 function node(tag, text, className) {
   const element = document.createElement(tag);
@@ -171,7 +172,7 @@ export function formatAuditQuestions(findings) {
 }
 
 export function renderAudit(host, audit, {
-  download, exportDocument, openRepair, openEvidence, onPanelChange, initialPanel,
+  download, exportDocument, openRepair, openEvidence, onPanelChange, initialPanel, reportLanguage,
   comparison, modeChanged, focusedBefore, confirmedBefore, appliedEdits, demo, renderStructure, openLinkSource, language = "ru",
 }) {
   const { requirements, findings, counts } = audit;
@@ -193,6 +194,9 @@ export function renderAudit(host, audit, {
   const requirementLabels = new Map(requirements.map(item => [item.id, item.source_id || item.id]));
   const translations = [];
   const kk = {
+    "Язык отчёта": "Есеп тілі",
+    "Требования и правки показаны по русскому оригиналу.": "Талаптар мен түзетулер орысша түпнұсқа бойынша көрсетіледі.",
+    "Перейти к правкам (RU)": "Түзетулерге өту (RU)",
     "Требует индивидуальной сверки": "Жеке тексеру қажет", "Только без индивидуальной оценки": "Жеке бағасы жоқтарын ғана көрсету",
     "Проверка по правилам. Индивидуальная оценка ИИ не проводилась.": "Талаптар ережелермен тексерілді. ЖИ әр талапты жеке бағалаған жоқ.",
     "В этом отчёте не указан охват индивидуальной оценки ИИ.": "Бұл есепте ЖИ қанша талапты жеке бағалағаны көрсетілмеген.",
@@ -253,7 +257,8 @@ export function renderAudit(host, audit, {
   ];
   if (comparison) sections.push(["changes", "Сравнение", "Comparison", null]);
   sections.push(["files", "Файлы", "Files", null],
-    ["requirements", "Отдельные требования", "Individual requirements", null], ["checks", "Набор в целом", "Whole set", null]);
+    ["requirements", "Отдельные требования", "Individual requirements", null], ["checks", "Набор в целом", "Whole set", null],
+    ["language", "Язык отчёта", "Report language", null]);
   let activePanel;
   for (const [key, ru, en, amount] of sections) {
     const panel = node("section", "", "audit-pane");
@@ -261,7 +266,7 @@ export function renderAudit(host, audit, {
     panel.tabIndex = -1;
     labelAttribute(panel, "aria-label", ru, en);
     let button;
-    if (["overview", "requirements", "checks"].includes(key)) {
+    if (["overview", "requirements", "checks", "language"].includes(key)) {
       button = labelText(node("button", "", "audit-tab"), ru, en);
       button.type = "button";
       button.setAttribute("aria-controls", panel.id);
@@ -283,6 +288,8 @@ export function renderAudit(host, audit, {
       button?.setAttribute("aria-pressed", String(key === selected));
     }
     navigation.hidden = !panels.get(selected).button;
+    originalDetails.hidden = selected === "language" || reader.target() === "ru";
+    if (selected === "language") reader.render();
     host.closest(".results-panel")?.scrollTo({ top: 0 });
     onPanelChange();
   }
@@ -310,13 +317,39 @@ export function renderAudit(host, audit, {
   header.append(meta);
 
   const reportDownloads = node("div", "", "audit-actions");
+  const originalDetails = labelText(node("p", "", "audit-original-language"),
+    "Требования и правки показаны по русскому оригиналу.", "Requirement details and revisions use the Russian original.");
+  header.append(originalDetails);
+  const mdButtons = [];
+  const reader = reportLanguagePanel({ ...reportLanguage, audit, locale: language,
+    change() {
+      const result = reader.current();
+      originalDetails.hidden = activePanel === "language" || reader.target() === "ru";
+      for (const button of mdButtons) {
+        button.disabled = !result;
+        button.title = result?.language || "";
+        button.querySelector("small").textContent = result ? " · " + result.language.toLocaleUpperCase() : "";
+      }
+      onPanelChange();
+    },
+  });
+  panels.get("language").panel.append(reader.root);
+  if (findings.length) {
+    const backToRevisions = panelAction("Перейти к правкам (RU)", "Open revisions (RU)", "findings");
+    backToRevisions.className = "button button-compact text-button";
+    reader.root.querySelector(".audit-actions").append(backToRevisions);
+  }
   function reportButton(format) {
     const button = labelText(node("button", "", "button button-compact secondary"),
       format === "md" ? "Отчёт (.md)" : "Данные (.json)", format === "md" ? "Report (.md)" : "Data (.json)");
     button.type = "button";
     labelAttribute(button, "aria-label", format === "md" ? "Скачать отчёт (.md)" : "Скачать данные (.json)",
       format === "md" ? "Download report (.md)" : "Download data (.json)");
-    button.addEventListener("click", () => download(format));
+    if (format === "md") {
+      mdButtons.push(button);
+      button.append(node("small"));
+      button.addEventListener("click", () => { const result = reader.current(); if (result) reportLanguage.download(result); });
+    } else button.addEventListener("click", () => download(format));
     return button;
   }
   reportDownloads.append(reportButton("md"), reportButton("json"));
@@ -359,7 +392,8 @@ export function renderAudit(host, audit, {
   const documentFiles = node("section", "", "audit-overview");
   documentFiles.append(labelText(node("h3"), "Техническое задание", "Specification"), documentHint, documentDownloads, documentStatus);
   const reportFiles = node("section", "", "audit-overview");
-  reportFiles.append(labelText(node("h3"), "Отчёт этого прогона", "Audit report"), reportDownloads);
+  reportFiles.append(labelText(node("h3"), "Отчёт этого прогона", "Audit report"), reportDownloads,
+    panelAction("Язык отчёта", "Report language", "language"));
   panels.get("files").panel.append(documentFiles, reportFiles);
 
   const list = node("div", "", "audit-list");
@@ -779,13 +813,17 @@ export function renderAudit(host, audit, {
     panel.hidden = true;
     scroller.append(panel);
   }
-  showPanel(panels.has(initialPanel) ? initialPanel : comparison ? "changes" : "overview");
+  const nonRussian = reader.target() !== "ru";
+  showPanel(panels.has(initialPanel) ? initialPanel : nonRussian ? "language" : comparison ? "changes" : "overview");
   header.append(navigation);
   host.replaceChildren(header, scroller);
+  reader.render();
+  if (!reportLanguage.restored && nonRussian) reader.generate();
   function updateRepairLabel(button, queued) {
     button.textContent = queued ? local("Редактировать правку", "Edit queued revision") : local("Разобрать замечание", "Review finding");
   }
   return {
+    cancelTranslation: reader.cancel, languageSnapshot: reader.snapshot,
     revealFinding, revealRequirement, currentPanel: () => activePanel,
     revealSetCheck(criterion) {
       showPanel("checks");
@@ -798,6 +836,7 @@ export function renderAudit(host, audit, {
     },
     setLanguage(next) {
       language = next;
+      reader.setLanguage(next);
       for (const translate of translations) translate();
       for (const [id, button] of repairButtons) updateRepairLabel(button, queuedFindings.has(id));
       updateFileActions();

@@ -18,6 +18,7 @@ from gemini import configured_models, provider_name
 from hackathon_review import (CRITERIA_RU, DEFAULT_FALLBACK, DEFAULT_MODEL, OUTCOME_RU, SEVERITY_RU, Evidence,
                               completed_steps, review_requirements, review_requirements_steps)
 from public_links import check_audit_links, github_repository, web_urls
+from source_language import detect_source_language
 from review_rules import (FROZEN_REFUND_QUESTION, KZT_INTEGER, REFUND_LIMIT_QUESTION, REFUND_ON_FROZEN_ACCOUNT, TIMING_QUESTION, api_contract,
                           internal_references, requirement_index)
 from visual_review import review_diagram_text, review_figures
@@ -50,6 +51,11 @@ ERRORS = {
     "same_file": "выберите для отчёта путь, отличный от входного файла",
     "same_answers_file": "выберите для ответов путь, отличный от входного файла и отчёта",
     "same_json_file": "выберите для JSON путь, отличный от входного файла и остальных результатов",
+    "invalid_report_language": "укажите код или название языка отчёта",
+    "source_language_unknown": "язык документа не определён, выберите язык через --language",
+    "report_too_large": "отчёт превышает предел перевода",
+    "invalid_report": "отчёт не прошёл проверку структуры",
+    "translation_invalid_response": "перевод отчёта не прошёл проверку сохранности данных",
     "invalid_output": "выберите файл отчёта с расширением .md или .json",
 }
 WARNINGS = {
@@ -589,6 +595,21 @@ def author_question_lines(findings, *, include_answers):
     return lines
 
 
+def localized_worksheet(audit, translated):
+    original = render_review(audit).splitlines()
+    localized = translated.splitlines()
+    if len(original) != len(localized):
+        raise ValueError("translation_invalid_response")
+    start = original.index("## Вопросы автору ТЗ")
+    end = next(i for i in range(start + 1, len(original)) if original[i].startswith("## "))
+    output = [localized[start].removeprefix("#"), ""]
+    for i in range(start + 1, end):
+        output.append(localized[i])
+        if original[i].startswith("- ") and not original[i].startswith("- Места в ТЗ — "):
+            output.extend(["", "____________________"])
+    return "\n".join(output).rstrip() + "\n"
+
+
 def audit_document(input_path, source, model=None, *, rules_only=False, pdf_origin=None):
     return completed_steps(audit_document_steps(input_path, source, model, rules_only=rules_only, pdf_origin=pdf_origin))
 
@@ -629,6 +650,7 @@ def audit_document_steps(input_path, source, model=None, *, rules_only=False, pd
     audit = build_audit(result, input_path, extension, hashlib.sha256(source).hexdigest(),
                        document["warnings"], document["page_spans"], rules_only=rules_only,
                        pdf_coverage=document.get("pdf_coverage"), pdf_origin=pdf_origin, visual=visual)
+    audit["source_language"] = detect_source_language(document["text"])
     if check_links and audit["external_references"]:
         audit["external_link_checks"] = check_audit_links(audit["external_references"], include_public_web=True) if allow_rules_fallback else check_audit_links(audit["external_references"])
     if fallback:
@@ -643,7 +665,7 @@ def audit_document_steps(input_path, source, model=None, *, rules_only=False, pd
 
 
 def review_file(input_path, output_path, model=None, *, rules_only=False, unified=False, answers_path=None,
-                json_path=None):
+                json_path=None, language="ru"):
     extension = output_path.suffix.lower()
     if extension not in {".md", ".json"}:
         raise ValueError("invalid_output")
@@ -665,11 +687,24 @@ def review_file(input_path, output_path, model=None, *, rules_only=False, unifie
     files = {}
     if json_path is not None:
         files[json_path] = encoded
+    localized = None
+    if extension == ".md":
+        from report_language import localize_report
+        target = audit["source_language"] if language == "auto" else language
+        if rules_only or audit.get("ai_unavailable") or target == "ru":
+            report_text = render_review(audit)
+        else:
+            result = localize_report(audit, "auto" if target == "und" else target, model=model)
+            report_text = result["markdown"]
+            if result["language"].split("-")[0] != "ru":
+                localized = report_text
+    else:
+        report_text = encoded
     if answers_path is not None:
         questions = ["# Вопросы автору ТЗ", "", f"Документ — {md(audit['document'])}", "",
                      *author_question_lines(audit["findings"], include_answers=True)]
-        files[answers_path] = "\n".join(questions) + "\n"
-    files[output_path] = render_review(audit) if extension == ".md" else encoded
+        files[answers_path] = localized_worksheet(audit, localized) if localized else "\n".join(questions) + "\n"
+    files[output_path] = report_text
     write_review_files(files)
     return audit
 

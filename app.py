@@ -27,7 +27,7 @@ ASSETS = {"app.js", "strings.js", "document-view.js", "styles.css", "brand-mark.
 ASSETS.update({"transfer-case-en.docx", "transfer-case-ru.docx", "qr-refund-demo.docx"})
 ASSETS.update({"spec-profiles.js", "word-export.js", "document-focus.css", "correction.css", "standards.css"})
 ASSETS.update({"audit-view.js", "audit-compare.js", "audit-repair.js", "audit.css", "workspace.css"})
-ASSETS.update({"workspace-session.js", "hero-field.js"})
+ASSETS.update({"workspace-session.js", "hero-field.js", "report-language.js"})
 MAX_JSON = 6 * MAX_TEXT + 4096
 MAX_REPORT_JSON = 12 * MAX_TEXT + 4096  # A Unicode code point can be two escaped UTF-16 units.
 LOCAL_REVIEW_ROUTE = "/api/analyze"
@@ -148,6 +148,9 @@ def audit_contract():
         "example_report": {"method": "GET", "path": OFFICIAL_REPORT_PATH, "language": "ru"},
         "organizer_input": {"method": "GET", "path": "/api/official-input", "url": SOURCE_URL,
                             "sha256": OFFICIAL_SHA256},
+        "localized_report": {"method": "POST", "path": GEMINI_REVIEW_ROUTE + "?operation=translate-report",
+                             "input": ["review", "language"], "output": ["language", "markdown"],
+                             "auto": "Uses the language of the input specification. Source quotes retain their wording."},
         "endpoints": {
             "gemini": {"path": f"{GEMINI_REVIEW_ROUTE}?operation={REPORT_OPERATION}", "requires_server_key": True},
             "rules": {"path": f"{LOCAL_REVIEW_ROUTE}?operation={REPORT_OPERATION}", "requires_server_key": False},
@@ -284,6 +287,10 @@ def review():
     operation = request.args.get("operation")
     if operation == "correction" and gemini_route:
         return handle_correction()
+    if operation == "translate-report":
+        if not gemini_route:
+            return {"error": "invalid_request"}, 400
+        return translate_report()
     if operation == REPORT_OPERATION:
         return download_requirements_report(rules_only=not gemini_route)
     if request.mimetype != "application/json":
@@ -448,6 +455,25 @@ def handle_correction():
         if code not in status and code not in {"gemini_access", "gemini_model", "gemini_unavailable", "gemini_invalid_response"}:
             code = "gemini_unavailable"
         return {"error": code}, status.get(code, 502)
+
+
+def translate_report():
+    from report_language import localize_report
+
+    if request.mimetype != "application/json":
+        return {"error": "invalid_request"}, 415
+    request.max_content_length = MAX_UPLOAD
+    payload = request.get_json()
+    if not isinstance(payload, dict) or not isinstance(payload.get("review"), dict):
+        return {"error": "invalid_report"}, 400
+    try:
+        return localize_report(payload["review"], payload.get("language", "auto"))
+    except ValueError as error:
+        code = str(error)
+        statuses = {"invalid_report_language": 400, "invalid_report": 400, "source_language_unknown": 422,
+                    "report_too_large": 413, "gemini_quota": 429, "gemini_unconfigured": 503,
+                    "gemini_busy": 503, "gemini_timeout": 504, "translation_invalid_response": 502}
+        return {"error": code if code in statuses or code.startswith("gemini_") else "translation_invalid_response"}, statuses.get(code, 502)
 
 
 def finish_review(report, doc, mode, use_model, locale):

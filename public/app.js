@@ -1970,6 +1970,7 @@ async function upload(file) {
 
 function clearAudit() {
   if (!state.audit) return;
+  state.audit.cancelTranslation?.();
   state.audit = null;
   state.hackathonStatus = "";
   select("audit-results").replaceChildren();
@@ -2145,6 +2146,7 @@ function openAuditEvidence(run, item, source, setCheck = false) {
 
 function mountAudit(run, before, focusedBefore) {
   const { review: audit, markdown, comparison, confirmed, modeChanged } = run;
+  state.audit?.cancelTranslation?.();
   const appliedEdits = new Map([...state.auditDecisions.values()]
     .filter(entry => entry.source_sha256 === before?.sha256 && entry.source_mode === before.mode)
     .map(entry => [entry.finding_id, entry.revisions || [entry.revision]]));
@@ -2154,6 +2156,19 @@ function mountAudit(run, before, focusedBefore) {
     renderStructure: panel => profileGuide.renderReport(panel),
     openLinkSource: line => locateDocumentLine(line),
     initialPanel: run.panel,
+    reportLanguage: {
+      markdown, saved: run.savedLanguage, restored: run.restored,
+      official: audit.sha256 === "e7dae55e5453a250d93e335f5ff9c7f775f4457ccddd333f4a67e47b20d74381",
+      translate: (language, signal) => request("/api/analyze/gemini?operation=translate-report", {
+        method: "POST", headers: { "Content-Type": "application/json" }, signal,
+        body: JSON.stringify({ review: audit, language }),
+      }),
+      download(result) {
+        const filename = audit.mode === "rules" ? "sana1-rules-review" : "sana1-requirements-review";
+        const suffix = result.language === "ru" ? "" : "-" + result.language.replace(/[^\p{L}\p{N}-]+/gu, "-").slice(0, 60);
+        downloadFile(result.markdown, "text/markdown;charset=utf-8", filename + suffix + ".md");
+      },
+    },
     comparison,
     modeChanged,
     focusedBefore,
@@ -2230,7 +2245,7 @@ function saveRecovery() {
     pane: select("review-page").dataset.pane, layout: select("review-page").dataset.layout,
     baseline: baseline && { text: baseline.text, review: baseline.review, recheckToken: baseline.recheckToken },
     audit: current && { review: current.review, markdown: current.markdown, recheckToken: current.recheckToken, compare: Boolean(current.comparison),
-      modeChanged: current.modeChanged, panel: current.currentPanel(), confirmed: [...current.confirmed],
+      modeChanged: current.modeChanged, panel: current.currentPanel(), reportLanguage: current.languageSnapshot(), confirmed: [...current.confirmed],
       edits: [...current.edits].map(([id, { changes }]) => [id, changes]) },
     decisions: [...state.auditDecisions], undo: state.auditUndo,
   });
@@ -2305,7 +2320,7 @@ function restoreRecovery() {
     const confirmed = new Set(comparison?.needs_review.filter(item => audit.confirmed?.includes(item.id)).map(item => item.id));
     const edits = restoredEdits(audit.edits, review, saved.text);
     mountAudit({ review, markdown, recheckToken: audit.recheckToken, comparison, confirmed, edits, panel: audit.panel,
-      modeChanged: Boolean(audit.modeChanged), text: saved.text }, before);
+      modeChanged: Boolean(audit.modeChanged), text: saved.text, savedLanguage: audit.reportLanguage, restored: true }, before);
     state.hackathonStatus = review.mode === "rules" ? "rulesAuditReady" : "hackathonReady";
   } catch {
     state.audit = state.auditBaseline = null;
@@ -2417,6 +2432,7 @@ function syncWorkspaceRoute() {
   }
   const enteringCase = nextCase && !activeCase;
   if (enteringCase) saveRecovery();
+  state.audit?.cancelTranslation?.();
 
   state.loadAttempt++;
   state.reviewAttempt++;
