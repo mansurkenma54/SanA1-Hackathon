@@ -16,8 +16,8 @@ def main():
     args = parser.parse_args()
     if args.rules_only and args.model:
         parser.error("--rules-only cannot be used with --model")
-    answers_path = args.output.with_suffix(".answers.md") if args.answers else None
     try:
+        answers_path = args.output.with_suffix(".answers.md") if args.answers else None
         audit = review_file(args.input, args.output, args.model, rules_only=args.rules_only, unified=True,
                             answers_path=answers_path)
     except (ValueError, OSError) as error:

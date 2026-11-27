@@ -1175,9 +1175,10 @@ class ReviewEntryPointTests(unittest.TestCase):
         self.assertEqual((response.status_code, response.mimetype), (200, "text/plain"))
         report = response.get_data(as_text=True)
         for section in ("Паспорт прогона", "Выделенные требования", "Проверка каждого требования",
-                        "Проверка набора требований", "Сводка и готовность к разработке"):
+                        "Проверка набора требований", "Вопросы автору ТЗ", "Сводка и готовность к разработке"):
             self.assertIn(f"## {section}", report)
-        self.assertIn("4df3df2182acc8aa3e4ca889744bb972061365cf", report)
+        self.assertRegex(report, r"(?m)^- Версия SanA1 \(Git\) — [0-9a-f]{40}$")
+        self.assertIn("- Режим — Модель и правила SanA1", report)
 
     def test_json_input_matches_identical_file_bytes_and_can_return_markdown(self):
         text = RULES_SPEC.replace("\n", "\r\n")
