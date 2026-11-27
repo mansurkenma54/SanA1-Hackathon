@@ -1,15 +1,26 @@
 import json
 from pathlib import Path
+import re
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import patch
 
 from app import app
 from hackathon_cli import audit_document, render_review, review_file
+from report_terms import report_terms
 from source_language import detect_source_language
 
 
 class LanguageFlowTests(unittest.TestCase):
+    def test_glossary_preserves_numbers_and_respects_script_requests(self):
+        for language in ("kk", "en", "kk-Cyrl-KZ", "en-GB"):
+            terms = report_terms(language)
+            self.assertIn("⟦0⟧ из ⟦1⟧", terms)
+            for source, target in terms.items():
+                self.assertEqual(re.findall(r"⟦\d+⟧", source), re.findall(r"⟦\d+⟧", target))
+        self.assertFalse(report_terms("kk-Latn"))
+        self.assertFalse(report_terms("ja"))
+
     def test_uploaded_language_is_independent_of_interface_and_code_examples(self):
         texts = {
             "kk": "Клиент төлемді растаған кезде жүйе түбіртекті жіберуі керек.",

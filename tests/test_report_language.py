@@ -120,3 +120,40 @@ class ReportLanguageTests(unittest.TestCase):
         self.assertIn("# Requirements review", translated["markdown"])
         self.assertEqual(len(self.requests), 2)
         self.assertEqual(len(self.requests[-1]["items"]), 1)
+
+    def test_kazakh_glossary_leaves_dynamic_text_and_protected_values_to_the_correct_stage(self):
+        audit = copy.deepcopy(self.audit)
+        audit["mode"] = "gemini"
+        audit["warnings"] = []
+        audit["requirements"][0]["assessment_status"] = "reviewed"
+        audit["requirements"][0]["assessment"] = "Счётчик учитывает 24 часа до обработки 2 операций."
+        def natural_word_order(model, payload, timeout):
+            result = self.provider(model, payload, timeout)
+            source = {r["id"]: r["text"] for r in self.requests[-1]["items"]}
+            data = json.loads(result["candidates"][0]["content"]["parts"][0]["text"])
+            for row in data["items"]:
+                if source[row["id"]].startswith("Счётчик учитывает"):
+                    row["text"] = "⟦1⟧ операцияны өңдеуге дейін есептегіш ⟦0⟧ сағатты ескереді."
+            return response(data)
+        with patch("report_language.generate", side_effect=natural_word_order):
+            result = localize_report(audit, "kk")
+        self.assertIn("2 операцияны өңдеуге дейін есептегіш 24 сағатты ескереді.", result["markdown"])
+        self.assertIn("Тексерілгені 1, барлығы 2", result["markdown"])
+        self.assertEqual(result["markdown"].splitlines()[0], "# Талаптарды тексеру есебі")
+        self.assertNotIn("Отчёт о проверке требований", [r["text"] for d in self.requests for r in d["items"]])
+
+    def test_symbolic_ratio_keeps_both_numbers_in_other_languages(self):
+        audit = copy.deepcopy(self.audit)
+        audit["mode"] = "gemini"
+        audit["requirements"][0]["assessment_status"] = "reviewed"
+        def symbolic_ratio(model, payload, timeout):
+            result = self.provider(model, payload, timeout)
+            source = {r["id"]: r["text"] for r in self.requests[-1]["items"]}
+            data = json.loads(result["candidates"][0]["content"]["parts"][0]["text"])
+            for row in data["items"]:
+                if source[row["id"]] == "⟦0⟧ из ⟦1⟧":
+                    row["text"] = "⟦0⟧/⟦1⟧"
+            return response(data)
+        with patch("report_language.generate", side_effect=symbolic_ratio):
+            result = localize_report(audit, "日本語")
+        self.assertIn("1/2", result["markdown"])
