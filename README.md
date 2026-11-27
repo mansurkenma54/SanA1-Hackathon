@@ -8,6 +8,8 @@ SanA1 reviews English and Russian specifications. Paste text or upload a TXT, Ma
 
 [Рабочая область](https://sana1-nine.vercel.app/workspace) принимает свой файл или учебный DOCX по ссылке **Загрузить пример**. Нажмите **Проверить**. Отчёт формируется на русском независимо от языка интерфейса.
 
+[Демо](https://sana1-nine.vercel.app/workspace?demo=audit) сразу открывает учебный DOCX о возврате по QR. Нажмите **Проверить**, чтобы получить отчёт по этому примеру.
+
 Для локального прогона установите зависимости (`python -m pip install -r requirements.txt`, Python 3.12+). Получите ключ на странице [Google AI Studio](https://aistudio.google.com/api-keys), скопируйте [.env.example](.env.example) в `.env` и заполните `GEMINI_API_KEY`. Модель задаёт `GEMINI_MODEL` (в примере `gemini-3.5-flash-lite`). Поддерживаются и другие [настройки провайдера](#ai-provider-configuration).
 
 Сохраните [ТЗ организаторов](https://github.com/BCC-HUB/ai-requirements-validator-task/blob/928c1aa364265426105b69ba7a3444eac11b22db/docs/requirements.md) как `requirements.md` в корне SanA1 и запустите аудит одной командой.
@@ -36,7 +38,7 @@ On macOS or Linux:
 
 Open http://127.0.0.1:8765/workspace, load a specification and select **Check**. The log shows completed stages. If the provider fails, the report and workspace clearly label the result as rules-only. Open **Structural check** to choose a profile and view the selected structural topics and their sources.
 
-Select **Начать** on the home page, then **Загрузить пример**. In the result, select **Перейти к исправлениям**. Open a quoted source and review the proposed edit after confirming the behavior. Queue and apply the change, then open **Файлы** for the editable document and report.
+Select **Попробовать демо** on the home page to open the sample, then select **Проверить**. In the result, select **Перейти к исправлениям**. Open a quoted source and review the proposed edit after confirming the behavior. Queue and apply the change, then open **Файлы** for the editable document and report.
 
 ## Checks and output
 

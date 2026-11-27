@@ -2448,7 +2448,8 @@ function syncWorkspaceRoute() {
   clearActivity();
   renderEditor();
   renderReport();
-  if (!demo) draftWorkspace = null;
+  if (demo) openAuditDemo();
+  else draftWorkspace = null;
 }
 
 async function openAuditDemo() {
